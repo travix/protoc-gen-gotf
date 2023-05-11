@@ -1,2 +1,3 @@
-# protoc-gen-go-tf
-protoc plugin that generates terraform plugin resources and datasources go code
+# protoc-gen-goterraform
+protoc plugin that generates go code for terraform provider using protobuf messages and services
+

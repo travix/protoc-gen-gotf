@@ -1,0 +1,59 @@
+run:
+  skip-dirs:
+    - pb
+linters:
+  enable:
+    - containedctx
+    - contextcheck
+    - dupl
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exportloopref
+    - forcetypeassert
+    - gci
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - goimports
+    - gomnd
+    - gosimple
+    - ineffassign
+    - makezero
+    - misspell
+    - nilerr
+    - predeclared
+    - revive
+    - staticcheck
+    - tenv
+    - unconvert
+    - unparam
+    - unused
+    - vet
+    - wrapcheck
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        severity: warning
+        disabled: false
+        arguments:
+          - ["ID"] # AllowList
+  goimports:
+    local-prefixes: github.com/travix/protoc-gen-goterraform
+  wrapcheck:
+    ignoreSigRegexps:
+      - '.*github.com/travix/protoc-gen-goterraform/.*'
+    ignorePackageGlobs:
+      - github.com/travix/protoc-gen-goterraform/*
+  gocyclo:
+    min-complexity: 12
+  gci:
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - dot
+      - prefix(github.com/travix/protoc-gen-goterraform) # local packages.
+    custom-order: true
