@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -e
+
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install github.com/lyft/protoc-gen-star/protoc-gen-debug@latest
+
 echo "generating plugin.proto"
 protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-go-tf plugin.proto
 
-go install github.com/lyft/protoc-gen-star/protoc-gen-debug@latest
 test_proto_dirs=(
   minimum-valid
 )
