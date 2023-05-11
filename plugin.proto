@@ -9,7 +9,7 @@ option go_package = "github.com/travix/protoc-gen-go-tf/pb";
 /* Extend FileOptions to add (goterraform.provider) option. */
 extend google.protobuf.FileOptions {
   // define provider for this package, should be set only once per package.
-  optional Provider provider = 82848;
+  optional Option provider = 82848;
 }
 
 /* Extend MessageOptions to add (goterraform.block) option. */
@@ -31,19 +31,28 @@ message Block {
   // name for terraform resource or datasource, defaults to message name.
   // defaults to snake_case of message name.
   optional string name = 1;
-  // fields to be set on go struct being generated for this terraform block.
-  // These are helper fields such as grpc clients, rest clients, etc and not
-  // terraform attributes.
+  // struct_members to be set on go struct being generated for this terraform block.
+  // These are helper fields for block such as grpc clients, rest clients, etc and not
+  // terraform attributes of the block.
   //
   // Map's key is name of the field. Should follow go struct field naming convention.
   //
   // Value can be grpc client (service) from this package or any other go type.
   // In case the type of field is not defined in this package, it must be in as below:
-  //    <package>.<type>
+  //   <package>.<type>
   // Examples:
-  //    fields = {"client": "XFromThisPackageServiceClient", "client2": "example.protobuf.xyz.SomeServiceClient"}
-  //    fields = {"dbClient": "github.com/org/repo/pkg.Client"}
-  map<string, string> fields = 2;
+  //   fields = {"client": "XFromThisPackageServiceClient", "client2": "example.protobuf.xyz.SomeServiceClient"}
+  //   fields = {"dbClient": "github.com/org/repo/pkg.Client"}
+  map<string, string> struct_members = 2;
+  // explicit_fields if set to true, only fields with goterraform.Attribute will be
+  // generated as attributes in this terraform block.
+  //
+  // If set to false (default), all fields will be generated as attributes in this
+  // terraform block.
+  //
+  // Check goterraform.Attribute for default attribute properties.
+  bool explicit_fields = 3;
+
 }
 
 /* Must is used to set terraform block attribute's required, optional or computed
@@ -65,30 +74,34 @@ enum NestedType {
 
 /* attribute is used to set terraform attribute's properties message Attribute */
 message Attribute {
+  // skip this field from from this terraform block.
+  bool skip = 1;
   // attribute must_be computed, optional, required or optional and computed.
-  Must must_be = 1;
+  Must must_be = 2;
   // name of terraform attribute, check https://developer.hashicorp.com/terraform/plugin/best-practices/naming#attribute-names
   // defaults to snake_case of message field name.
-  optional string name = 2;
+  optional string name = 3;
   // sensitive if set to true field will be marked as sensitive.
-  optional bool sensitive = 3;
+  optional bool sensitive = 4;
   // description is used to set terraform attribute's description. Defaults to
   // field comment.
-  optional string description = 4;
+  optional string description = 5;
   // md_description is used to set terraform attribute's markdown description of
   // field. Defaults to field comment.
-  optional string md_description = 5;
+  optional string md_description = 6;
   // deprecation is used to set terraform attribute's deprecation message.
-  optional string deprecation = 6;
+  optional string deprecation = 7;
   // proxy should be set if you want to override field's terraform type or message
   // type field with to proxy require/ optional attributes in multiple blocks.
-  optional string proxy = 7;
+  optional string proxy = 8;
   // nested_type is used to specify message kind field's terraform type in case.
   // ignore if the field is not a protobuf message.
-  optional NestedType nested_type = 8;
+  optional NestedType nested_type = 9;
 }
 
-message Provider {
+// Option to create provider for this package.
+message Option {
+  // Attributes of terraform provider such as access_key, secret_key, etc.
   message Attribute {
     // optional if set to true this provider attribute will be marked as optional,
     // else it is required.
@@ -113,11 +126,11 @@ message Provider {
   // name is used to set terraform provider type name, all resources and datasources
   // will be generated under this provider.
   //
-  // Example
-  //    name = "xyz";
-  // terraform blocks will be
-  //    resource "xyz_resource_name" { ... }
-  //    data "xyz_datasource_name" { ... }
+  // Example:
+  //   name = "xyz";
+  // This will produce terraform blocks will be
+  //   resource "xyz_resource_name" { ... }
+  //   data "xyz_datasource_name" { ... }
   string name = 1;
   // attributes of terraform provider such as access_key, secret_key, endpoint, etc.
   repeated Attribute attributes = 2;
@@ -128,9 +141,8 @@ message Provider {
   // module of this project, defined in go.mod. It is used in go import statements
   // to access protobuf messages used by the provider.
   //
-  // Default value is taken from
-  //    --go_opt=module=...
-  // flag passed to protoc.
+  // Default value is taken from go_opt flag passed to protoc.
+  //   protoc --go_opt=module=...
   //
   // Required if provider package is different from any of the other proto files
   optional string module = 5;

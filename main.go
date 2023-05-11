@@ -10,7 +10,7 @@ import (
 	"github.com/travix/protoc-gen-goterraform/plugin"
 )
 
-//go:generate protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-go-tf plugin.proto
+//go:generate ./gen.sh
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, FormatMessage: formatter})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)

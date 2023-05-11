@@ -1,0 +1,89 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+    - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - id: setup-go
+        name: Setup GO
+        uses: actions/setup-go@v4
+        with:
+          go-version: ^1
+      - name: Download dependencies
+        if: steps.setup-go.outputs.cache-hit != 'true'
+        shell: bash
+        run: go get -t ./...
+      - name: Generate
+        run: go generate ./...
+      - name: Go fmt
+        run: test -z $(gofmt -l .)
+        shell: bash
+      - name: Go fmt-diff
+        if: failure()
+        run: gofmt -e -d .
+        shell: bash
+      - name: Go vet
+        if: success() || failure() # runs everytime except the job is cancelled
+        run: go vet ./...
+        shell: bash
+      - name: Golangci lint
+        uses: golangci/golangci-lint-action@v3
+        if: success() || failure() # runs everytime except the job is cancelled
+        with:
+          skip-pkg-cache: true
+          args: --timeout=3
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - id: setup-go
+        name: Setup GO
+        uses: actions/setup-go@v4
+        with:
+          go-version: ^1
+      - name: Download dependencies
+        if: steps.setup-go.outputs.cache-hit != 'true'
+        shell: bash
+        run: go get -t ./...
+      - name: Generate
+        run: go generate ./...
+      - name: Unit test without race
+        run: go test ./...
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - id: setup-go
+        name: Setup GO
+        uses: actions/setup-go@v4
+        with:
+          go-version: ^1
+      - name: Download dependencies
+        if: steps.setup-go.outputs.cache-hit != 'true'
+        shell: bash
+        run: go get -t ./...
+      - name: Generate
+        run: go generate ./...
+      - name: Build
+        run: go build
+
