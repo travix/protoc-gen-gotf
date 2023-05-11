@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/compiler/protogen"
 
 	"github.com/travix/protoc-gen-goterraform/plugin"
 )
@@ -14,7 +15,7 @@ import (
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, FormatMessage: formatter})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	plugin.Run()
+	protogen.Options{}.Run(plugin.Run)
 }
 
 func formatter(msg any) string {

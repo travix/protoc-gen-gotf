@@ -66,13 +66,13 @@ enum Must {
 
 /* NestedType is used specify message kind field's terraform type in case */
 enum NestedType {
-  ListNestedAttribute = 0; // field is a list of nested objects (message).
-  MapNestedAttribute = 1; // field is a map of nested objects (message).
-  SetNestedAttribute = 2; // field is a set of nested objects (message).
-  SingleNestedAttribute = 3; // field is a single nested objects (message).
+  SingleNestedAttribute = 0; // field is a single nested objects (message).
+  ListNestedAttribute = 1; // field is a list of nested objects (message).
+  MapNestedAttribute = 2; // field is a map of nested objects (message).
+  SetNestedAttribute = 3; // field is a set of nested objects (message).
 }
 
-/* attribute is used to set terraform attribute's properties message Attribute */
+/* Attribute to set kind properties of terraform attribute & schema for terraform block.*/
 message Attribute {
   // skip this field from from this terraform block.
   bool skip = 1;
@@ -94,8 +94,12 @@ message Attribute {
   // proxy should be set if you want to override field's terraform type or message
   // type field with to proxy require/ optional attributes in multiple blocks.
   optional string proxy = 8;
-  // nested_type is used to specify message kind field's terraform type in case.
-  // ignore if the field is not a protobuf message.
+  // nested_type is used to specify message kind field's terraform type.
+  //
+  // Default value for message kind field is SingleNestedAttribute. If field is repeated
+  // then default value is ListNestedAttribute.
+  //
+  // Should be set only for message kind fields.
   optional NestedType nested_type = 9;
 }
 

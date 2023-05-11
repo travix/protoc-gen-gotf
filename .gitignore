@@ -21,3 +21,4 @@
 go.work
 
 /protoc-gen-goterraform
+/mocks/

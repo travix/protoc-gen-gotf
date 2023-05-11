@@ -27,8 +27,6 @@ jobs:
         if: steps.setup-go.outputs.cache-hit != 'true'
         shell: bash
         run: go get -t ./...
-      - name: Generate
-        run: go generate ./...
       - name: Go fmt
         run: test -z $(gofmt -l .)
         shell: bash
@@ -45,7 +43,7 @@ jobs:
         if: success() || failure() # runs everytime except the job is cancelled
         with:
           skip-pkg-cache: true
-          args: --timeout=3
+          args: --timeout=3s
 
   test:
     name: Test

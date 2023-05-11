@@ -1,6 +1,7 @@
 run:
   skip-dirs:
     - pb
+    - .*/mocks
 linters:
   enable:
     - containedctx
