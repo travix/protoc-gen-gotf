@@ -3,3 +3,13 @@ testonly: False
 with-expecter: True
 keeptree: False
 log-level: warn
+packages:
+  github.com/travix/protoc-gen-goterraform/internal/terraform:
+    config:
+      dir: "mocks/terraform"
+      filename: "{{.InterfaceNameSnake}}.go"
+      mockname: "Mocked{{.InterfaceName}}"
+    interfaces:
+      Block:
+      Provider:
+      Synthesizer:

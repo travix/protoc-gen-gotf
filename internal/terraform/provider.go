@@ -10,7 +10,7 @@ var _ Provider = &provider{}
 
 // Provider is helper to generate a terraform provider.
 //
-//go:generate mockery --name Provider --output ../../mocks
+// //go:generate mockery --name Provider --output ../../mocks.
 type Provider interface {
 	Attributes() []*Attribute
 	GoImportPath() protogen.GoImportPath

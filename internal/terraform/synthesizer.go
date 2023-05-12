@@ -11,7 +11,7 @@ var _ Synthesizer = &synthesizer{}
 
 // Synthesizer for synthesizing Provider or resource, datasource Block from proto files, messages.
 //
-//go:generate mockery --name Synthesizer --output ../../mocks
+// //go:generate mockery --name Synthesizer --output ../../mocks.
 type Synthesizer interface {
 	// Provider synthesis from proto file
 	Provider(desc protoreflect.FileDescriptor) (Provider, error)

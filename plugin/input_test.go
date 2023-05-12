@@ -11,15 +11,15 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
 
-	"github.com/travix/protoc-gen-goterraform/internal/terraform/mocks"
+	"github.com/travix/protoc-gen-goterraform/mocks/terraform"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
 func TestNewInput(t *testing.T) {
-	mocked := &mocks.Synthesizer{}
-	mocked.On("Provider", mock.Anything).Return(&mocks.Provider{}, nil)
-	mocked.On("Block", mock.Anything, pb.E_Resource).Return(&mocks.Block{}, nil, nil)
-	mocked.On("Block", mock.Anything, pb.E_Datasource).Return(&mocks.Block{}, nil, nil)
+	mocked := &terraform.MockedSynthesizer{}
+	mocked.On("Provider", mock.Anything).Return(&terraform.MockedProvider{}, nil)
+	mocked.On("Block", mock.Anything, pb.E_Resource).Return(&terraform.MockedBlock{}, nil, nil)
+	mocked.On("Block", mock.Anything, pb.E_Datasource).Return(&terraform.MockedBlock{}, nil, nil)
 	_, err := NewInput(testProtoGen("testdata/minimum-valid/code_generator_request.pb.bin"), mocked)
 	assert.Nil(t, err)
 	mocked.AssertExpectations(t)

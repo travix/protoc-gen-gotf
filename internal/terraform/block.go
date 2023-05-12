@@ -10,7 +10,7 @@ var _ Block = &block{}
 
 // Block is helper to generate a terraform block.
 //
-//go:generate mockery --name Block --output ../../mocks
+// //go:generate mockery --name Block --output ../../mocks.
 type Block interface {
 	Attributes() []*Attribute
 	Name() string
