@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Setup job
-        uses: travix/protoc-gen-goterraform/.github/actions/setup-job
+        uses: travix/protoc-gen-goterraform/.github/actions/setup-job@main
       - name: Go fmt
         run: test -z $(gofmt -l .)
         shell: bash
@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Setup job
-        uses: travix/protoc-gen-goterraform/.github/actions/setup-job
+        uses: travix/protoc-gen-goterraform/.github/actions/setup-job@main
       - name: Unit test without race
         run: go test ./...
 
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Setup job
-        uses: travix/protoc-gen-goterraform/.github/actions/setup-job
+        uses: travix/protoc-gen-goterraform/.github/actions/setup-job@main
       - name: Build
         run: go build
 
