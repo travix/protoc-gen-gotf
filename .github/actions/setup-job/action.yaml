@@ -1,0 +1,21 @@
+name: Setup Workflow job
+description: Clone repository, setup Go, install Protoc, generate code, download dependencies
+runs:
+  using: composite
+  steps:
+    - name: Clone
+      uses: actions/checkout@v3
+    - id: setup-go
+      name: Setup GO
+      uses: actions/setup-go@v4
+      with:
+          go-version: ^1
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1
+    - name: Generate
+      shell: bash
+      run: go generate ./...
+    - name: Download dependencies
+      if: steps.setup-go.outputs.cache-hit != 'true'
+      shell: bash
+      run: go get -t ./...

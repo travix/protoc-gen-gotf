@@ -14,19 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Clone
-        uses: actions/checkout@v3
-      - id: setup-go
-        name: Setup GO
-        uses: actions/setup-go@v4
-        with:
-          go-version: ^1
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-      - name: Download dependencies
-        if: steps.setup-go.outputs.cache-hit != 'true'
-        shell: bash
-        run: go get -t ./...
+      - name: Setup job
+        uses: ./.github/actions/setup-job
       - name: Go fmt
         run: test -z $(gofmt -l .)
         shell: bash
@@ -50,21 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Clone
-        uses: actions/checkout@v3
-      - id: setup-go
-        name: Setup GO
-        uses: actions/setup-go@v4
-        with:
-          go-version: ^1
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-      - name: Download dependencies
-        if: steps.setup-go.outputs.cache-hit != 'true'
-        shell: bash
-        run: go get -t ./...
-      - name: Generate
-        run: go generate ./...
+      - name: Setup job
+        uses: ./.github/actions/setup-job
       - name: Unit test without race
         run: go test ./...
 
@@ -73,21 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Clone
-        uses: actions/checkout@v3
-      - id: setup-go
-        name: Setup GO
-        uses: actions/setup-go@v4
-        with:
-          go-version: ^1
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-      - name: Download dependencies
-        if: steps.setup-go.outputs.cache-hit != 'true'
-        shell: bash
-        run: go get -t ./...
-      - name: Generate
-        run: go generate ./...
+      - name: Setup job
+        uses: ./.github/actions/setup-job
       - name: Build
         run: go build
 

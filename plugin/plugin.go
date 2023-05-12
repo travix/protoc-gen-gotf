@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -13,14 +14,14 @@ import (
 const Name = "protoc-gen-goterraform"
 
 // opt is the plugin options. set only once in plugin run.
-var opt = &options{suffix: ".tf.pb.go"}
+var opt = &options{logLevel: zerolog.WarnLevel, suffix: ".tf.pb.go"}
 
 // options that can be passed to plugin.
 type options struct {
-	debug  bool   // debug mode
-	module string // module name of go tf code being generated
-	prefix string // prefix for go tf files
-	suffix string // suffix for go tf files
+	logLevel zerolog.Level // logLevel mode
+	module   string        // module name of go tf code being generated
+	prefix   string        // prefix for go tf files
+	suffix   string        // suffix for go tf files
 }
 
 // Plugin is the interface for the goterraform plugin.
@@ -59,7 +60,7 @@ func Run(gen *protogen.Plugin) error {
 //
 // Available options:
 //
-//	debug=true enable debug logging
+//	log_level= for plugin, available values trace, debug, info, warn, error, fatal, panic, disable. Default is warn.
 //	module= module name of go tf code being generated
 //	prefix= prefix for go tf files
 //	suffix= suffix for go tf files
@@ -77,9 +78,12 @@ func SetOptions(params string) {
 			opt.prefix = strings.TrimSpace(value)
 		case "suffix":
 			opt.suffix = strings.TrimSpace(value)
-		case "debug":
-			opt.debug = true
-			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case "log_level":
+			var err error
+			if opt.logLevel, err = zerolog.ParseLevel(value); err != nil {
+				panic(fmt.Errorf("invalid log_level %s: %w", value, err))
+			}
+			zerolog.SetGlobalLevel(opt.logLevel)
 		case "", "paths", "annotate_code":
 			// Ignore go plugin options.
 		default:
