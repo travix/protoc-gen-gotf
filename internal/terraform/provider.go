@@ -12,7 +12,7 @@ var _ Provider = &provider{}
 //
 // //go:generate mockery --name Provider --output ../../mocks.
 type Provider interface {
-	Attributes() []*Attribute
+	Attributes() []Attribute
 	GoImportPath() protogen.GoImportPath
 	Name() string
 	Option() *pb.Option
@@ -20,7 +20,7 @@ type Provider interface {
 }
 
 type provider struct {
-	attributes   []*Attribute
+	attributes   []Attribute
 	goImportPath protogen.GoImportPath
 	goPackage    protogen.GoPackageName
 	name         string
@@ -31,7 +31,7 @@ func (p *provider) Name() string {
 	return p.name
 }
 
-func (p *provider) Attributes() []*Attribute {
+func (p *provider) Attributes() []Attribute {
 	return p.attributes
 }
 

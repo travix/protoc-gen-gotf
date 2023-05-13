@@ -1,15 +1,29 @@
-inpackage: False
-testonly: False
-with-expecter: True
-keeptree: False
+inpackage: true
+testonly: false
+with-expecter: true
+keeptree: false
 log-level: warn
 packages:
   github.com/travix/protoc-gen-goterraform/internal/terraform:
-    config:
-      dir: "mocks/terraform"
-      filename: "{{.InterfaceNameSnake}}.go"
-      mockname: "Mocked{{.InterfaceName}}"
     interfaces:
       Block:
       Provider:
       Synthesizer:
+      Attribute:
+      TypeValue:
+    config:
+      dir: "internal/terraform"
+      filename: "{{.InterfaceNameSnake}}_mock.go"
+      mockname: "Mocked{{.InterfaceName}}"
+## used to generate /mocks for protoreflect
+#  google.golang.org/protobuf/reflect/protoreflect:
+#    interfaces:
+#      FileDescriptor:
+#      FieldDescriptor:
+#      MapDescriptor:
+#    config:
+#      dir: "mocks"
+#      filename: "{{.InterfaceNameSnake}}_mock.go"
+#      mockname: "Mocked{{.InterfaceName}}"
+#      inpackage: false
+#      outpkg: "mocks"

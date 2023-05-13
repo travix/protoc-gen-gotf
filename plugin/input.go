@@ -17,7 +17,7 @@ type Input interface {
 	Provider() terraform.Provider
 	Resources() []terraform.Block
 	Datasources() []terraform.Block
-	Dependencies() []terraform.TypeValue
+	Dependencies() []*protogen.Message
 }
 
 type input struct {
@@ -25,7 +25,7 @@ type input struct {
 	provider          terraform.Provider
 	resources         []terraform.Block
 	datasources       []terraform.Block
-	dependencies      []terraform.TypeValue
+	dependencies      []*protogen.Message
 }
 
 func (in *input) Provider() terraform.Provider {
@@ -40,12 +40,12 @@ func (in *input) Datasources() []terraform.Block {
 	return in.datasources
 }
 
-func (in *input) Dependencies() []terraform.TypeValue {
+func (in *input) Dependencies() []*protogen.Message {
 	return in.dependencies
 }
 
-// set provider if not already set, and error if multiple providers found.
-func (in *input) funcName1(file *protogen.File, synthesizer terraform.Synthesizer) error {
+// setProvider if not already set, and error if multiple providers found.
+func (in *input) setProvider(file *protogen.File, synthesizer terraform.Synthesizer) error {
 	provider, err := synthesizer.Provider(file.Desc)
 	if err != nil {
 		return err
@@ -59,25 +59,68 @@ func (in *input) funcName1(file *protogen.File, synthesizer terraform.Synthesize
 	return nil
 }
 
-func (in *input) funcName(file *protogen.File, synthesizer terraform.Synthesizer) error {
+// setBlocks sets resources and datasources as input.
+func (in *input) setBlocks(file *protogen.File, synthesizer terraform.Synthesizer) error {
 	for _, message := range file.Messages {
 		for _, blockType := range []*protoimpl.ExtensionInfo{pb.E_Resource, pb.E_Datasource} {
-			block, dependencies, err := synthesizer.Block(message, blockType)
+			block, err := synthesizer.Block(message, blockType)
 			if err != nil {
 				return err
 			}
-			if block != nil {
-				in.addBlock(block, blockType)
-				in.setDependencies(dependencies)
+			if block == nil {
+				continue
+			}
+			in.addBlock(block, blockType)
+			for _, attr := range block.Attributes() {
+				err = in.setDependencies(attr, message)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func (in *input) setDependencies(dependencies []terraform.TypeValue) {
-	// TODO: check for duplicates
-	in.dependencies = append(in.dependencies, dependencies...)
+// setDependencies sets proto messages from non native terraform.TypeValue as dependencies.
+func (in *input) setDependencies(attr terraform.Attribute, message *protogen.Message) error {
+	dependencies, err := in.dependencyChain(attr, message)
+	if err != nil {
+		return err
+	}
+	for _, dependency := range dependencies {
+		for _, existing := range in.dependencies {
+			// make sure we don't add the same dependency twice
+			if existing.GoIdent.String() == dependency.GoIdent.String() {
+				continue
+			}
+			in.dependencies = append(in.dependencies, dependency)
+		}
+	}
+	return nil
+}
+
+func (in *input) dependencyChain(dependency terraform.Attribute, parent *protogen.Message) ([]*protogen.Message, error) {
+	if dependency.TypeValue().TerraformNative() {
+		return nil, nil
+	}
+	message := dependency.TypeValue().Message()
+	if message == nil {
+		return nil, fmt.Errorf("error dependency not a native terraform type value %s#%s.%s: expected proto message",
+			parent.Location.SourceFile, parent.Location.Path, dependency.Name())
+	}
+	return in.messageChain(message), nil
+}
+
+func (in *input) messageChain(message *protogen.Message) []*protogen.Message {
+	dependencies := []*protogen.Message{message}
+	for _, field := range message.Fields {
+		if field.Message != nil {
+			deps := in.messageChain(field.Message)
+			dependencies = append(dependencies, deps...)
+		}
+	}
+	return dependencies
 }
 
 func (in *input) addBlock(block terraform.Block, blockType *protoimpl.ExtensionInfo) {
@@ -98,10 +141,10 @@ func NewInput(gen *protogen.Plugin, synthesizer terraform.Synthesizer) (Input, e
 			continue
 		}
 		log.Debug().Msgf("parsing %s files", file.Proto.GetName())
-		if err := in.funcName1(file, synthesizer); err != nil {
+		if err := in.setProvider(file, synthesizer); err != nil {
 			return nil, err
 		}
-		if err := in.funcName(file, synthesizer); err != nil {
+		if err := in.setBlocks(file, synthesizer); err != nil {
 			return nil, err
 		}
 	}

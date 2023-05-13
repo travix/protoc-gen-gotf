@@ -21,4 +21,5 @@
 go.work
 
 /protoc-gen-goterraform
-/mocks/
+*_mock.go
+*.pb.bin

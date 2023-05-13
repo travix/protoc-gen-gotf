@@ -4,7 +4,7 @@ package goterraform;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "github.com/travix/protoc-gen-go-tf/pb";
+option go_package = "github.com/travix/protoc-gen-goterraform/pb";
 
 /* Extend FileOptions to add (goterraform.provider) option. */
 extend google.protobuf.FileOptions {
@@ -26,50 +26,140 @@ extend google.protobuf.FieldOptions {
   optional Attribute attribute = 82851;
 }
 
+/* Builtin go types to provide terraform provider and block's attribute type.*/
+enum Builtin {
+  string = 0;
+  bool = 1;
+  byte = 2;
+  complex128 = 3;
+  complex64 = 4;
+  float32 = 5;
+  float64 = 6;
+  int = 7;
+  int16 = 8;
+  int32 = 9;
+  int64 = 10;
+  int8 = 11;
+  rune = 12;
+  uint = 13;
+  uint16 = 14;
+  uint32 = 15;
+  uint64 = 16;
+  uint8 = 17;
+  uintptr = 18;
+  any = 19;
+  string_ptr = 20;
+  bool_ptr = 21;
+  byte_ptr = 22;
+  complex128_ptr = 23;
+  complex64_ptr = 24;
+  float32_ptr = 25;
+  float64_ptr = 26;
+  int_ptr = 27;
+  int16_ptr = 28;
+  int32_ptr = 29;
+  int64_ptr = 30;
+  int8_ptr = 31;
+  rune_ptr = 32;
+  uint_ptr = 33;
+  uint16_ptr = 34;
+  uint32_ptr = 35;
+  uint64_ptr = 36;
+  uint8_ptr = 37;
+  any_ptr = 38;
+}
+
+/* GoIdentity to indicate user defined go types such as structs, interfaces, etc.
+ * for terraform provider and block attribute type. */
+message GoIdentity {
+  // name of the user defined go type.
+  string name = 1;
+  // import_path (go mod name) of the user defined go type.
+  // defaults to current proto files go_package name.
+  string import_path = 2;
+  // if set to true, this type will be generated as pointer type.
+  // *should not be set for interfaces.*
+  bool ptr = 3;
+}
+
+/* Slice to indicate go slice ([]xyz) as terraform provider and block's attribute type.*/
+message Slice {
+  oneof type {
+    // builtin type's slice
+    Builtin builtin = 2;
+    // identity of user defined go type's slice
+    GoIdentity identity = 3;
+  }
+}
+
+/* Map to indicate go map (map[xyz]abc) as terraform provider and block's attribute type.*/
+message Map {
+  oneof key {
+    // builtin type map key
+    Builtin builtin_key = 1;
+    // identity of user defined go type; map key
+    GoIdentity identity_key = 2;
+  }
+  oneof value {
+    // builtin type map value
+    Builtin builtin_value = 3;
+    // identity of user defined go type; map value
+    GoIdentity identity_value = 4;
+  }
+}
+
+// GoType to represent a field in golang struct. It can be grpc client (service)
+// from this package or any other go type.
+// In case the type of field is not defined in this package, it must be in as below:
+//   <package>.<type>
+// Examples:
+//   fields = {"client": "XFromThisPackageServiceClient", "client2": "example.protobuf.xyz.SomeServiceClient"}
+//   fields = {"dbClient": "github.com/org/repo/pkg.Client"}
+message GoType {
+  oneof type {
+    Builtin builtin = 1;
+    GoIdentity go_identity = 2;
+    Slice slice = 3;
+    Map map = 4;
+  }
+}
+
+/* AttrType to indicate terraform provider attribute types. */
+enum AttrType {
+  bool_attr = 0;
+  int64_attr = 1;
+  float64_attr = 2;
+  string_attr = 3;
+}
+
 /* Block allows to generate terraform resource or datasource from proto message */
 message Block {
   // name for terraform resource or datasource, defaults to message name.
   // defaults to snake_case of message name.
   optional string name = 1;
-  // struct_members to be set on go struct being generated for this terraform block.
+  // explicit_fields if set to `false` (default), all fields will be generated as
+  // attributes in this terraform block.
+  //
+  // If set to `true`, only fields with `goterraform.Attribute` will be generated
+  // as an attributes in this terraform block.
+  //
+  // Check goterraform.Attribute for default attribute properties.
+  bool explicit_fields = 2;
+  // members to be set on go struct being generated for this terraform block.
   // These are helper fields for block such as grpc clients, rest clients, etc and not
   // terraform attributes of the block.
   //
-  // Map's key is name of the field. Should follow go struct field naming convention.
-  //
-  // Value can be grpc client (service) from this package or any other go type.
-  // In case the type of field is not defined in this package, it must be in as below:
-  //   <package>.<type>
-  // Examples:
-  //   fields = {"client": "XFromThisPackageServiceClient", "client2": "example.protobuf.xyz.SomeServiceClient"}
-  //   fields = {"dbClient": "github.com/org/repo/pkg.Client"}
-  map<string, string> struct_members = 2;
-  // explicit_fields if set to true, only fields with goterraform.Attribute will be
-  // generated as attributes in this terraform block.
-  //
-  // If set to false (default), all fields will be generated as attributes in this
-  // terraform block.
-  //
-  // Check goterraform.Attribute for default attribute properties.
-  bool explicit_fields = 3;
-
+  // Map's key is name of the field on struct. Should follow go struct field naming convention.
+  map <string, GoType> members = 3;
 }
 
 /* Must is used to set terraform block attribute's required, optional or computed
  * values */
-enum Must {
+enum MustBe {
   Computed = 0; // field will be computed by provider, user can't set it in terraform script (default).
   Optional = 1; // field is optional, user can set it in terraform script.
   OptionalAndComputed = 2; // field is optional, but will be computed or overriden by provider.
   Required = 3; // field is required, user must set it in terraform script.
-}
-
-/* NestedType is used specify message kind field's terraform type in case */
-enum NestedType {
-  SingleNestedAttribute = 0; // field is a single nested objects (message).
-  ListNestedAttribute = 1; // field is a list of nested objects (message).
-  MapNestedAttribute = 2; // field is a map of nested objects (message).
-  SetNestedAttribute = 3; // field is a set of nested objects (message).
 }
 
 /* Attribute to set kind properties of terraform attribute & schema for terraform block.*/
@@ -77,9 +167,11 @@ message Attribute {
   // skip this field from from this terraform block.
   bool skip = 1;
   // attribute must_be computed, optional, required or optional and computed.
-  Must must_be = 2;
-  // name of terraform attribute, check https://developer.hashicorp.com/terraform/plugin/best-practices/naming#attribute-names
+  MustBe must_be = 2;
+  // name of terraform attribute, check [attribute-names] documentation for more details.
   // defaults to snake_case of message field name.
+  //
+  // [attribute-names]: https://developer.hashicorp.com/terraform/plugin/best-practices/naming#attribute-names
   optional string name = 3;
   // sensitive if set to true field will be marked as sensitive.
   optional bool sensitive = 4;
@@ -91,42 +183,15 @@ message Attribute {
   optional string md_description = 6;
   // deprecation is used to set terraform attribute's deprecation message.
   optional string deprecation = 7;
-  // proxy should be set if you want to override field's terraform type or message
-  // type field with to proxy require/ optional attributes in multiple blocks.
-  optional string proxy = 8;
-  // nested_type is used to specify message kind field's terraform type.
-  //
-  // Default value for message kind field is SingleNestedAttribute. If field is repeated
-  // then default value is ListNestedAttribute.
-  //
-  // Should be set only for message kind fields.
-  optional NestedType nested_type = 9;
+
+  // att is required if this an provider attribute. It is ignored for block attributes.
+  optional AttrType attr = 8;
+
+  // TODO: support attr to override/ proxy field's attribute block. Will require to use go reflect maybe?
 }
 
 // Option to create provider for this package.
 message Option {
-  // Attributes of terraform provider such as access_key, secret_key, etc.
-  message Attribute {
-    // optional if set to true this provider attribute will be marked as optional,
-    // else it is required.
-    bool optional = 1;
-    // name of terraform attribute,
-    // check https://developer.hashicorp.com/terraform/plugin/best-practices/naming#attribute-names
-    optional string name = 2;
-    // sensitive if set to true field will be marked as sensitive.
-    optional bool sensitive = 3;
-    // description of terraform attribute. Defaults to field comment.
-    optional string description = 4;
-    // md_description is description in markdown format of terraform attribute
-    // description of field. Defaults to field comment.
-    optional string md_description = 5;
-    // deprecation is used to set terraform attribute's deprecation message.
-    optional string deprecation = 6;
-    // type of attribute is required, it must be any string ident of
-    // any https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/types
-    // such types.String, types.Int64 etc or message from input proto files
-    string type = 7;
-  }
   // name is used to set terraform provider type name, all resources and datasources
   // will be generated under this provider.
   //

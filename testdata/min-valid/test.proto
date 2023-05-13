@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package goterraform;
+
+option go_package = ".;testpb";
+
+import "plugin.proto";
+
+option (provider) = {
+  name: "min-valid"
+};
+
+message User {
+  option (resource) = {};
+  string email = 1; // user email address
+}
+
+message UserData {
+  option map_entry = true;
+  option (datasource) = { name: "User", explicit_fields: true };
+  string email = 1 [(attribute) = {}]; // user email address
+  string FirstName = 2 [(attribute) = {}]; // user first name
+}
+
+

@@ -1,7 +1,9 @@
 run:
   skip-dirs:
     - pb
-    - .*/mocks
+    - mocks
+  skip-files:
+    - ".*_mock\\.go$"
 linters:
   enable:
     - containedctx

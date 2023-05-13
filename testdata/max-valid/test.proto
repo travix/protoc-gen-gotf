@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package goterraform;
+
+option go_package = ".;testpb";
+
+import "plugin.proto";
+
+option (provider) = {
+  name: "valid"
+  attributes: {
+
+  }
+};
+
+message User {
+  option (resource) = {
+    name: "Person"
+  };
+  string email = 1;
+  string name = 2 [(goterraform.attribute) = {skip: true}];
+}
+
+message Group {
+  option (datasource) = {
+    explicit_fields: true
+    members: {
+      key: "cache"
+      value: {
+        go_identity: {
+          name: "ResourceData"
+          import_path: "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+        }
+      }
+    }
+  };
+  repeated string emails = 1;
+  repeated User members = 2 [(goterraform.attribute) = {}];
+}
