@@ -7,14 +7,15 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/protobuf/compiler/protogen"
 
+	"github.com/travix/protoc-gen-goterraform/extensions"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
 func TestNewBlock(t *testing.T) {
 	t.Run("Returns nil when no option is found", func(t *testing.T) {
-		mocked := &MockedSynthesizer{}
+		mocked := &extensions.MockedSynthesizer{}
 		arg := &protogen.Message{}
-		mocked.On("getMessageOption", mock.Anything, pb.E_Resource).Once().Return(nil, nil)
+		mocked.On("MessageOption", mock.Anything, pb.E_Resource).Once().Return(nil, nil)
 		got, err := NewBlock(mocked, arg, pb.E_Resource)
 		if !assert.Nil(t, err) {
 			return
@@ -25,7 +26,7 @@ func TestNewBlock(t *testing.T) {
 		mocked.AssertExpectations(t)
 	})
 	t.Run("Returns Block when option is found", func(t *testing.T) {
-		mocked := &MockedSynthesizer{}
+		mocked := &extensions.MockedSynthesizer{}
 		arg := &protogen.Message{
 			GoIdent: protogen.GoIdent{
 				GoName: "test",
@@ -38,7 +39,7 @@ func TestNewBlock(t *testing.T) {
 				},
 			},
 		}
-		mocked.On("getMessageOption", mock.Anything, pb.E_Resource).Once().Return(&pb.Block{
+		mocked.On("MessageOption", mock.Anything, pb.E_Resource).Once().Return(&pb.Block{
 			Members: map[string]*pb.GoType{
 				"m1": {
 					Type: &pb.GoType_Builtin{
@@ -47,7 +48,7 @@ func TestNewBlock(t *testing.T) {
 				},
 			},
 		}, nil)
-		mocked.On("BlockAttribute", arg.Fields[0], false).Once().Return(&MockedAttribute{}, nil)
+		mocked.On("BlockAttribute", arg.Fields[0], false).Once().Return(&extensions.MockedAttribute{}, nil)
 		got, err := NewBlock(mocked, arg, pb.E_Resource)
 		if !assert.Nil(t, err) {
 			return
@@ -65,10 +66,10 @@ func TestNewBlock(t *testing.T) {
 func Test_block(t *testing.T) {
 	b := &block{
 		members:    nil,
-		attributes: []Attribute{&MockedAttribute{}},
+		attributes: []extensions.Attribute{&extensions.MockedAttribute{}},
 		option:     &pb.Block{},
 	}
-	assert.Equal(t, []Attribute{&MockedAttribute{}}, b.Attributes())
+	assert.Equal(t, []extensions.Attribute{&extensions.MockedAttribute{}}, b.Attributes())
 	assert.Equal(t, &pb.Block{}, b.Option())
 	b.setName(&protogen.Message{
 		GoIdent: protogen.GoIdent{

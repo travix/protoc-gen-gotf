@@ -7,7 +7,7 @@ option go_package = ".;testpb";
 import "plugin.proto";
 
 option (provider) = {
-  name: "min-valid"
+  name: "valid-01"
 };
 
 message User {

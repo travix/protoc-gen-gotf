@@ -7,23 +7,15 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/travix/protoc-gen-goterraform/extensions"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
 var (
-	_                  TypeValue = &typeValue{}
-	ErrUnsupportedKind           = errors.New("unsupported protoreflect.Kind")
-	ErrUnknownAttrType           = errors.New("error unknown value")
+	_                  extensions.TypeValue = &typeValue{}
+	ErrUnsupportedKind                      = errors.New("unsupported protoreflect.Kind")
+	ErrUnknownAttrType                      = errors.New("error unknown value")
 )
-
-type TypeValue interface {
-	TerraformNative() bool
-	Type() *pb.GoIdentity
-	Value() *pb.GoIdentity
-	Message() *protogen.Message
-	IsList() bool
-	IsMap() bool
-}
 
 type typeValue struct {
 	_type           *pb.GoIdentity
@@ -34,7 +26,15 @@ type typeValue struct {
 	value           *pb.GoIdentity
 }
 
-func TypeValueBool() TypeValue {
+func NewMapTypeValue(message *protogen.Message) extensions.TypeValue {
+	return newTypeValue(message, false, true)
+}
+
+func NewListTypeValue(message *protogen.Message) extensions.TypeValue {
+	return newTypeValue(message, true, false)
+}
+
+func TypeValueBool() extensions.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "BoolType",
@@ -48,7 +48,7 @@ func TypeValueBool() TypeValue {
 	}
 }
 
-func TypeValueString() TypeValue {
+func TypeValueString() extensions.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "StringType",
@@ -62,7 +62,7 @@ func TypeValueString() TypeValue {
 	}
 }
 
-func TypeValueInt64() TypeValue {
+func TypeValueInt64() extensions.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "Int64Type",
@@ -76,7 +76,7 @@ func TypeValueInt64() TypeValue {
 	}
 }
 
-func TypeValueFloat64() TypeValue {
+func TypeValueFloat64() extensions.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "Float64Type",
@@ -114,9 +114,27 @@ func (t typeValue) Type() *pb.GoIdentity {
 	return t._type
 }
 
-func inferTypeValue(field *protogen.Field) (TypeValue, error) {
+func explicitTypeValue(attrType *pb.AttrType) (extensions.TypeValue, error) {
+	if attrType == nil {
+		return nil, nil
+	}
+	switch *attrType {
+	case pb.AttrType_bool_attr:
+		return TypeValueBool(), nil
+	case pb.AttrType_string_attr:
+		return TypeValueString(), nil
+	case pb.AttrType_int64_attr:
+		return TypeValueInt64(), nil
+	case pb.AttrType_float64_attr:
+		return TypeValueFloat64(), nil
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnknownAttrType, attrType)
+	}
+}
+
+func inferTypeValue(field *protogen.Field) (extensions.TypeValue, error) {
 	kind := field.Desc.Kind()
-	var tv TypeValue
+	var tv extensions.TypeValue
 	var err error
 	switch kind {
 	case protoreflect.BoolKind:
@@ -148,14 +166,6 @@ func inferTypeValue(field *protogen.Field) (TypeValue, error) {
 	return tv, nil
 }
 
-func NewMapTypeValue(message *protogen.Message) TypeValue {
-	return newTypeValue(message, false, true)
-}
-
-func NewListTypeValue(message *protogen.Message) TypeValue {
-	return newTypeValue(message, true, false)
-}
-
 func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
@@ -171,23 +181,5 @@ func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 		isList:  isList,
 		isMap:   isMap,
 		message: message,
-	}
-}
-
-func explicitTypeValue(attrType *pb.AttrType) (TypeValue, error) {
-	if attrType == nil {
-		return nil, nil
-	}
-	switch *attrType {
-	case pb.AttrType_bool_attr:
-		return TypeValueBool(), nil
-	case pb.AttrType_string_attr:
-		return TypeValueString(), nil
-	case pb.AttrType_int64_attr:
-		return TypeValueInt64(), nil
-	case pb.AttrType_float64_attr:
-		return TypeValueFloat64(), nil
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnknownAttrType, attrType)
 	}
 }

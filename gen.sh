@@ -33,16 +33,9 @@ popd () {
     command popd > /dev/null
 }
 
-pushd testdata/
-
-test_proto_dirs=(
-  max-valid
-  min-valid
-)
-
-for dir in "${test_proto_dirs[@]}"; do
+for dir in testdata/*/; do
   pushd "${dir}"
-  echo "generating code_generator_request.pb.bin for testdata/${dir}/*.proto"
+  echo "generating code_generator_request.pb.bin for testdata/${dir}*.proto"
   protoc -I. -I../../ --plugin=protoc-gen-debug="$(go env GOPATH)/bin/protoc-gen-debug" --debug_out=".:." ./*.proto
   popd
 done

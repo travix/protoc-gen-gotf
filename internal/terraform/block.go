@@ -5,37 +5,40 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/travix/protoc-gen-goterraform/extensions"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
-var _ Block = &block{}
-
-// Block is helper to generate a terraform block.
-//
-// //go:generate mockery --name Block --output ../../mocks.
-type Block interface {
-	Attributes() []Attribute
-	Members() map[string]*pb.GoType
-	Name() string
-	Option() *pb.Block
-	Type() protoreflect.ExtensionType
-	TypeName() string
-}
+var _ extensions.Block = &block{}
 
 type block struct {
 	_type      protoreflect.ExtensionType
-	attributes []Attribute
+	attributes []extensions.Attribute
 	members    map[string]*pb.GoType
 	option     *pb.Block
 }
 
-func (b *block) setName(msg *protogen.Message) {
-	if b.option.Name == nil {
-		b.option.Name = proto.String(msg.GoIdent.GoName)
+func NewBlock(synth extensions.Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (extensions.Block, error) {
+	b := &block{_type: blockType}
+	b.option = synth.MessageOption(msg.Desc, blockType)
+	if b.option == nil {
+		return nil, nil
 	}
+	for _, field := range msg.Fields {
+		attr, err := synth.BlockAttribute(field, b.option.ExplicitFields)
+		if err != nil {
+			return nil, err
+		}
+		if attr == nil {
+			continue
+		}
+		b.attributes = append(b.attributes, attr)
+	}
+	b.setName(msg)
+	return b, nil
 }
 
-func (b *block) Attributes() []Attribute {
+func (b *block) Attributes() []extensions.Attribute {
 	return b.attributes
 }
 
@@ -59,22 +62,8 @@ func (b *block) TypeName() string {
 	return string(b._type.TypeDescriptor().FullName())
 }
 
-func NewBlock(synth Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (Block, error) {
-	b := &block{_type: blockType}
-	b.option = synth.getMessageOption(msg.Desc, blockType)
-	if b.option == nil {
-		return nil, nil
+func (b *block) setName(msg *protogen.Message) {
+	if b.option.Name == nil {
+		b.option.Name = proto.String(msg.GoIdent.GoName)
 	}
-	for _, field := range msg.Fields {
-		attr, err := synth.BlockAttribute(field, b.option.ExplicitFields)
-		if err != nil {
-			return nil, err
-		}
-		if attr == nil {
-			continue
-		}
-		b.attributes = append(b.attributes, attr)
-	}
-	b.setName(msg)
-	return b, nil
 }

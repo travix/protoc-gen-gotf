@@ -8,33 +8,20 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/travix/protoc-gen-goterraform/extensions"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
-var _ Attribute = &attribute{}
-
-type Attribute interface {
-	Computed() bool
-	Deprecation() string
-	Description() string
-	MdDescription() string
-	Name() string
-	Optional() bool
-	Required() bool
-	Sensitive() bool
-	TypeValue() TypeValue
-	Schema() *pb.GoIdentity
-	// TODO: support CustomType and Validators
-}
+var _ extensions.Attribute = &attribute{}
 
 type attribute struct {
 	*pb.Attribute
-	typeValue TypeValue
 	schema    *pb.GoIdentity
+	typeValue extensions.TypeValue
 }
 
-func NewBlockAttribute(synth Synthesizer, field *protogen.Field, explicit bool) (Attribute, error) {
-	option := synth.getFieldOption(field.Desc)
+func NewBlockAttribute(synth extensions.Synthesizer, field *protogen.Field, explicit bool) (extensions.Attribute, error) {
+	option := synth.FieldOption(field.Desc)
 	if option == nil {
 		if explicit {
 			return nil, nil
@@ -46,8 +33,8 @@ func NewBlockAttribute(synth Synthesizer, field *protogen.Field, explicit bool) 
 	}
 	// ignore attr on block attributes
 	option.Attr = nil
-	option.Description = getString(option.Description, field.Comments)
-	option.MdDescription = getString(option.MdDescription, field.Comments)
+	option.Description = deferToComment(option.Description, field.Comments)
+	option.MdDescription = deferToComment(option.MdDescription, field.Comments)
 	a, err := NewAttribute(option)
 	if err != nil {
 		return nil, err
@@ -62,7 +49,7 @@ func NewBlockAttribute(synth Synthesizer, field *protogen.Field, explicit bool) 
 	return a, aTyped.setSchema(field)
 }
 
-func NewAttribute(option *pb.Attribute) (Attribute, error) {
+func NewAttribute(option *pb.Attribute) (extensions.Attribute, error) {
 	if option == nil {
 		return nil, nil
 	}
@@ -90,6 +77,34 @@ func NewAttribute(option *pb.Attribute) (Attribute, error) {
 		}
 	}
 	return a, nil
+}
+
+func SchemaBool() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "BoolAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaFloat64() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "Float64Attribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaInt64() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "Int64Attribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaList() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "ListAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaMap() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "MapAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaSingleNested() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "SingleNestedAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
+}
+
+func SchemaString() *pb.GoIdentity {
+	return &pb.GoIdentity{Name: "StringAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
 }
 
 func (a *attribute) Computed() bool {
@@ -128,20 +143,20 @@ func (a *attribute) Sensitive() bool {
 	return a.Attribute.Sensitive != nil && *a.Attribute.Sensitive
 }
 
-func (a *attribute) TypeValue() TypeValue {
+func (a *attribute) TypeValue() extensions.TypeValue {
 	return a.typeValue
 }
 
 func (a *attribute) setDeprecation(option *pb.Attribute, comments protogen.CommentSet) {
-	a.Attribute.Deprecation = getString(option.Deprecation, comments)
+	a.Attribute.Deprecation = deferToComment(option.Deprecation, comments)
 }
 
 func (a *attribute) setDescription(option *pb.Attribute, comments protogen.CommentSet) {
-	a.Attribute.Description = getString(option.Description, comments)
+	a.Attribute.Description = deferToComment(option.Description, comments)
 }
 
 func (a *attribute) setMdDescription(option *pb.Attribute, comments protogen.CommentSet) {
-	a.Attribute.MdDescription = getString(option.MdDescription, comments)
+	a.Attribute.MdDescription = deferToComment(option.MdDescription, comments)
 }
 
 func (a *attribute) setSchemaFromOption(attrType pb.AttrType) error {
@@ -186,35 +201,7 @@ func (a *attribute) setSchema(field *protogen.Field) error {
 	return nil
 }
 
-func SchemaList() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "ListAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaMap() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "MapAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaBool() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "BoolAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaFloat64() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "Float64Attribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaInt64() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "Int64Attribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaSingleNested() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "SingleNestedAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func SchemaString() *pb.GoIdentity {
-	return &pb.GoIdentity{Name: "StringAttribute", ImportPath: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"}
-}
-
-func getString(direct *string, comments protogen.CommentSet) *string {
+func deferToComment(direct *string, comments protogen.CommentSet) *string {
 	if direct != nil {
 		return direct
 	}

@@ -26,7 +26,7 @@ type options struct {
 
 // Plugin is the interface for the goterraform plugin.
 type Plugin interface {
-	Run(*input) ([]*protogen.GeneratedFile, error)
+	Run(Input) ([]*protogen.GeneratedFile, error)
 }
 
 type plugin struct {
