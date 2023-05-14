@@ -38,7 +38,15 @@ func TestNewBlock(t *testing.T) {
 				},
 			},
 		}
-		mocked.On("getMessageOption", mock.Anything, pb.E_Resource).Once().Return(&pb.Block{}, nil)
+		mocked.On("getMessageOption", mock.Anything, pb.E_Resource).Once().Return(&pb.Block{
+			Members: map[string]*pb.GoType{
+				"m1": {
+					Type: &pb.GoType_Builtin{
+						Builtin: pb.Builtin_int,
+					},
+				},
+			},
+		}, nil)
 		mocked.On("BlockAttribute", arg.Fields[0], false).Once().Return(&MockedAttribute{}, nil)
 		got, err := NewBlock(mocked, arg, pb.E_Resource)
 		if !assert.Nil(t, err) {
@@ -47,9 +55,9 @@ func TestNewBlock(t *testing.T) {
 		if !assert.NotNil(t, got) {
 			return
 		}
-		mocked.AssertExpectations(t)
 		assert.Equal(t, "test", got.Name())
 		assert.Len(t, got.Attributes(), 1, "len(Attributes()) = 1")
+		assert.Len(t, got.Members(), 1, "len(Members()) = 1")
 		mocked.AssertExpectations(t)
 	})
 }

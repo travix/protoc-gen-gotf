@@ -215,4 +215,10 @@ message Option {
   //
   // Required if provider package is different from any of the other proto files
   optional string module = 5;
+  // members to be set on go struct being generated for this terraform provider.
+  // These are helper fields for provider such as grpc connection and not
+  // terraform attributes of the provider.
+  //
+  // Map's key is name of the field on struct. Should follow go struct field naming convention.
+  map <string, GoType> members = 3;
 }

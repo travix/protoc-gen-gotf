@@ -14,6 +14,7 @@ var _ Provider = &provider{}
 type Provider interface {
 	Attributes() []Attribute
 	GoImportPath() protogen.GoImportPath
+	Members() map[string]*pb.GoType
 	Name() string
 	Option() *pb.Option
 	Package() protogen.GoPackageName
@@ -27,22 +28,26 @@ type provider struct {
 	option       *pb.Option
 }
 
-func (p *provider) Name() string {
-	return p.name
-}
-
 func (p *provider) Attributes() []Attribute {
 	return p.attributes
-}
-
-func (p *provider) Package() protogen.GoPackageName {
-	return p.goPackage
 }
 
 func (p *provider) GoImportPath() protogen.GoImportPath {
 	return p.goImportPath
 }
 
+func (p *provider) Members() map[string]*pb.GoType {
+	return p.option.Members
+}
+
+func (p *provider) Name() string {
+	return p.name
+}
+
 func (p *provider) Option() *pb.Option {
 	return p.option
+}
+
+func (p *provider) Package() protogen.GoPackageName {
+	return p.goPackage
 }

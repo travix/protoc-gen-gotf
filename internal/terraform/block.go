@@ -15,19 +15,32 @@ var _ Block = &block{}
 // //go:generate mockery --name Block --output ../../mocks.
 type Block interface {
 	Attributes() []Attribute
+	Members() map[string]*pb.GoType
 	Name() string
 	Option() *pb.Block
-	Members() map[string]protogen.GoIdent
+	Type() protoreflect.ExtensionType
+	TypeName() string
 }
 
 type block struct {
-	members    map[string]protogen.GoIdent
+	_type      protoreflect.ExtensionType
 	attributes []Attribute
+	members    map[string]*pb.GoType
 	option     *pb.Block
+}
+
+func (b *block) setName(msg *protogen.Message) {
+	if b.option.Name == nil {
+		b.option.Name = proto.String(msg.GoIdent.GoName)
+	}
 }
 
 func (b *block) Attributes() []Attribute {
 	return b.attributes
+}
+
+func (b *block) Members() map[string]*pb.GoType {
+	return b.option.Members
 }
 
 func (b *block) Name() string {
@@ -38,19 +51,16 @@ func (b *block) Option() *pb.Block {
 	return b.option
 }
 
-func (b *block) Members() map[string]protogen.GoIdent {
-	// TODO: set from synthesizer
-	return b.members
+func (b *block) Type() protoreflect.ExtensionType {
+	return b._type
 }
 
-func (b *block) setName(msg *protogen.Message) {
-	if b.option.Name == nil {
-		b.option.Name = proto.String(msg.GoIdent.GoName)
-	}
+func (b *block) TypeName() string {
+	return string(b._type.TypeDescriptor().FullName())
 }
 
 func NewBlock(synth Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (Block, error) {
-	b := &block{}
+	b := &block{_type: blockType}
 	b.option = synth.getMessageOption(msg.Desc, blockType)
 	if b.option == nil {
 		return nil, nil

@@ -23,8 +23,7 @@ type Input interface {
 type input struct {
 	providerProtoFile string
 	provider          terraform.Provider
-	resources         []terraform.Block
-	datasources       []terraform.Block
+	blocks            []terraform.Block
 	dependencies      []*protogen.Message
 }
 
@@ -33,11 +32,23 @@ func (in *input) Provider() terraform.Provider {
 }
 
 func (in *input) Resources() []terraform.Block {
-	return in.resources
+	resource := make([]terraform.Block, 0)
+	for _, block := range in.blocks {
+		if block.Type() == pb.E_Resource {
+			resource = append(resource, block)
+		}
+	}
+	return resource
 }
 
 func (in *input) Datasources() []terraform.Block {
-	return in.datasources
+	resource := make([]terraform.Block, 0)
+	for _, block := range in.blocks {
+		if block.Type() == pb.E_Datasource {
+			resource = append(resource, block)
+		}
+	}
+	return resource
 }
 
 func (in *input) Dependencies() []*protogen.Message {
@@ -59,8 +70,9 @@ func (in *input) setProvider(file *protogen.File, synthesizer terraform.Synthesi
 	return nil
 }
 
-// setBlocks sets resources and datasources as input.
-func (in *input) setBlocks(file *protogen.File, synthesizer terraform.Synthesizer) error {
+// addBlocks sets resources and datasources as input.
+func (in *input) addBlocks(file *protogen.File, synthesizer terraform.Synthesizer) error {
+	blocks := make([]terraform.Block, 0)
 	for _, message := range file.Messages {
 		for _, blockType := range []*protoimpl.ExtensionInfo{pb.E_Resource, pb.E_Datasource} {
 			block, err := synthesizer.Block(message, blockType)
@@ -70,13 +82,19 @@ func (in *input) setBlocks(file *protogen.File, synthesizer terraform.Synthesize
 			if block == nil {
 				continue
 			}
-			in.addBlock(block, blockType)
 			for _, attr := range block.Attributes() {
 				err = in.setDependencies(attr, message)
 				if err != nil {
 					return err
 				}
 			}
+			blocks = append(blocks, block)
+		}
+	}
+	for _, block := range blocks {
+		err := in.setBlock(block)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -88,23 +106,26 @@ func (in *input) setDependencies(attr terraform.Attribute, message *protogen.Mes
 	if err != nil {
 		return err
 	}
-	for _, dependency := range dependencies {
+	// add message as dependency since it's not a native terraform type
+DEPENDENCIES:
+	for _, dependency := range append(dependencies, message) {
 		for _, existing := range in.dependencies {
 			// make sure we don't add the same dependency twice
 			if existing.GoIdent.String() == dependency.GoIdent.String() {
-				continue
+				continue DEPENDENCIES
 			}
-			in.dependencies = append(in.dependencies, dependency)
 		}
+		in.dependencies = append(in.dependencies, dependency)
 	}
 	return nil
 }
 
 func (in *input) dependencyChain(dependency terraform.Attribute, parent *protogen.Message) ([]*protogen.Message, error) {
-	if dependency.TypeValue().TerraformNative() {
+	tv := dependency.TypeValue()
+	if tv.TerraformNative() {
 		return nil, nil
 	}
-	message := dependency.TypeValue().Message()
+	message := tv.Message()
 	if message == nil {
 		return nil, fmt.Errorf("error dependency not a native terraform type value %s#%s.%s: expected proto message",
 			parent.Location.SourceFile, parent.Location.Path, dependency.Name())
@@ -123,13 +144,16 @@ func (in *input) messageChain(message *protogen.Message) []*protogen.Message {
 	return dependencies
 }
 
-func (in *input) addBlock(block terraform.Block, blockType *protoimpl.ExtensionInfo) {
-	switch blockType {
-	case pb.E_Resource:
-		in.resources = append(in.resources, block)
-	case pb.E_Datasource:
-		in.datasources = append(in.datasources, block)
+func (in *input) setBlock(block terraform.Block) error {
+	for _, b := range in.blocks {
+		name := b.Name()
+		typeName := b.TypeName()
+		if name == block.Name() && typeName == block.TypeName() {
+			return fmt.Errorf("error dupolicate terraform blocks: name: %s, type: %s", name, typeName)
+		}
 	}
+	in.blocks = append(in.blocks, block)
+	return nil
 }
 
 // NewInput returns goterraform *input.
@@ -144,7 +168,7 @@ func NewInput(gen *protogen.Plugin, synthesizer terraform.Synthesizer) (Input, e
 		if err := in.setProvider(file, synthesizer); err != nil {
 			return nil, err
 		}
-		if err := in.setBlocks(file, synthesizer); err != nil {
+		if err := in.addBlocks(file, synthesizer); err != nil {
 			return nil, err
 		}
 	}
@@ -152,7 +176,7 @@ func NewInput(gen *protogen.Plugin, synthesizer terraform.Synthesizer) (Input, e
 		log.Warn().Msgf("no provider found: %s option not set in any of the proto files", pb.E_Provider.TypeDescriptor().FullName())
 		return nil, nil
 	}
-	if len(in.resources) == 0 && len(in.datasources) == 0 {
+	if len(in.blocks) == 0 {
 		log.Warn().Msgf("no resources or datasources found: %s or %s option not set in any of the proto files", pb.E_Resource.TypeDescriptor().FullName(), pb.E_Datasource.TypeDescriptor().FullName())
 		return nil, nil
 	}
