@@ -203,10 +203,14 @@ message Option {
   string name = 1;
   // attributes of terraform provider such as access_key, secret_key, endpoint, etc.
   repeated Attribute attributes = 2;
+  // package where all generated proto messages are placed (by protoc-gen-go)
+  //
+  // This field is required.
+  string package = 4;
   // package where generated terraform go code should be placed
   //
   // If not set files will be placed in go_package.
-  optional string package = 4;
+  string provider_package = 5;
   // module of this project, defined in go.mod. It is used in go import statements
   // to access protobuf messages used by the provider.
   //
@@ -214,7 +218,7 @@ message Option {
   //   protoc --go_opt=module=...
   //
   // Required if provider package is different from any of the other proto files
-  optional string module = 5;
+  optional string module = 6;
   // members to be set on go struct being generated for this terraform provider.
   // These are helper fields for provider such as grpc connection and not
   // terraform attributes of the provider.

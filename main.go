@@ -13,7 +13,7 @@ import (
 
 //go:generate ./gen.sh
 func main() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, FormatMessage: formatter})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, FormatMessage: formatter, PartsExclude: []string{zerolog.TimestampFieldName}})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	protogen.Options{}.Run(plugin.Run)
 }

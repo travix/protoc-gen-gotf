@@ -1,11 +1,13 @@
-package terraform
+package extensionimpl
 
 import (
 	"regexp"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
 var (
@@ -13,7 +15,7 @@ var (
 	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
 )
 
-func getOptions[T *descriptorpb.FileOptions | *descriptorpb.MessageOptions | *descriptorpb.FieldOptions](desc protoreflect.Descriptor) (T, bool) {
+func getOptions[T *pb.Attribute | *pb.Block | *pb.Option](desc protoreflect.Descriptor, extType protoreflect.ExtensionType) (T, bool) {
 	if desc == nil {
 		return nil, false
 	}
@@ -21,7 +23,7 @@ func getOptions[T *descriptorpb.FileOptions | *descriptorpb.MessageOptions | *de
 	if optMayBe == nil {
 		return nil, false
 	}
-	option, ok := optMayBe.(T)
+	option, ok := proto.GetExtension(optMayBe, extType).(T)
 	return option, ok && option != nil
 }
 

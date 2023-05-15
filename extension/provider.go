@@ -1,4 +1,4 @@
-package extensions
+package extension
 
 import (
 	"google.golang.org/protobuf/compiler/protogen"
@@ -11,9 +11,11 @@ import (
 // //go:generate mockery --name Provider --output ../../mocks.
 type Provider interface {
 	Attributes() []Attribute
-	GoImportPath() protogen.GoImportPath
+	ImportPath() protogen.GoImportPath
 	Members() map[string]*pb.GoType
 	Name() string
 	Option() *pb.Option
-	Package() protogen.GoPackageName
+	PackageName() protogen.GoPackageName
+	PbImportPath() protogen.GoImportPath
+	PbPackageName() protogen.GoPackageName
 }

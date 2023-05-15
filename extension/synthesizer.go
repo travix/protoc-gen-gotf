@@ -1,4 +1,4 @@
-package extensions
+package extension
 
 import (
 	"google.golang.org/protobuf/compiler/protogen"
@@ -12,12 +12,14 @@ import (
 // //go:generate mockery --name Synthesizer --output ../../mocks.
 type Synthesizer interface {
 	Block(msg *protogen.Message, blockType protoreflect.ExtensionType) (Block, error)
-	BlockAttribute(field *protogen.Field, explicit bool) (Attribute, error)
+	FieldAttribute(field *protogen.Field, explicit bool) (Attribute, error)
 	Datasource(msg *protogen.Message) (Block, error)
 	FieldOption(desc protoreflect.FieldDescriptor) *pb.Attribute
 	FileOption(desc protoreflect.FileDescriptor) *pb.Option
 	MessageOption(desc protoreflect.MessageDescriptor, extType protoreflect.ExtensionType) *pb.Block
 	Provider(desc protoreflect.FileDescriptor) (Provider, error)
-	ProviderAttribute(option *pb.Attribute) (Attribute, error)
+	Attribute(option *pb.Attribute) (Attribute, error)
 	Resource(msg *protogen.Message) (Block, error)
+	Model(msg *protogen.Message, explicit bool) (Model, error)
+	Module() string
 }

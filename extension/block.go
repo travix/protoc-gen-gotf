@@ -1,4 +1,4 @@
-package extensions
+package extension
 
 import (
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -10,7 +10,7 @@ import (
 //
 // //go:generate mockery --name Block --output ../../mocks.
 type Block interface {
-	Attributes() []Attribute
+	Model() Model
 	Members() map[string]*pb.GoType
 	Name() string
 	Option() *pb.Block

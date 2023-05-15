@@ -1,4 +1,4 @@
-package terraform
+package extensionimpl
 
 import (
 	"errors"
@@ -7,14 +7,14 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extensions"
+	"github.com/travix/protoc-gen-goterraform/extension"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
 var (
-	_                  extensions.TypeValue = &typeValue{}
-	ErrUnsupportedKind                      = errors.New("unsupported protoreflect.Kind")
-	ErrUnknownAttrType                      = errors.New("error unknown value")
+	_                  extension.TypeValue = &typeValue{}
+	ErrUnsupportedKind                     = errors.New("unsupported protoreflect.Kind")
+	ErrUnknownAttrType                     = errors.New("error unknown value")
 )
 
 type typeValue struct {
@@ -26,15 +26,19 @@ type typeValue struct {
 	value           *pb.GoIdentity
 }
 
-func NewMapTypeValue(message *protogen.Message) extensions.TypeValue {
+func NewMapTypeValue(message *protogen.Message) extension.TypeValue {
 	return newTypeValue(message, false, true)
 }
 
-func NewListTypeValue(message *protogen.Message) extensions.TypeValue {
+func NewListTypeValue(message *protogen.Message) extension.TypeValue {
 	return newTypeValue(message, true, false)
 }
 
-func TypeValueBool() extensions.TypeValue {
+func NewNestedSingleObjectTypeValue(message *protogen.Message) extension.TypeValue {
+	return newTypeValue(message, false, false)
+}
+
+func TypeValueBool() extension.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "BoolType",
@@ -48,7 +52,7 @@ func TypeValueBool() extensions.TypeValue {
 	}
 }
 
-func TypeValueString() extensions.TypeValue {
+func TypeValueString() extension.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "StringType",
@@ -62,7 +66,7 @@ func TypeValueString() extensions.TypeValue {
 	}
 }
 
-func TypeValueInt64() extensions.TypeValue {
+func TypeValueInt64() extension.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "Int64Type",
@@ -76,7 +80,7 @@ func TypeValueInt64() extensions.TypeValue {
 	}
 }
 
-func TypeValueFloat64() extensions.TypeValue {
+func TypeValueFloat64() extension.TypeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
 			Name:       "Float64Type",
@@ -114,7 +118,7 @@ func (t typeValue) Type() *pb.GoIdentity {
 	return t._type
 }
 
-func explicitTypeValue(attrType *pb.AttrType) (extensions.TypeValue, error) {
+func explicitTypeValue(attrType *pb.AttrType) (extension.TypeValue, error) {
 	if attrType == nil {
 		return nil, nil
 	}
@@ -132,9 +136,9 @@ func explicitTypeValue(attrType *pb.AttrType) (extensions.TypeValue, error) {
 	}
 }
 
-func inferTypeValue(field *protogen.Field) (extensions.TypeValue, error) {
+func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	kind := field.Desc.Kind()
-	var tv extensions.TypeValue
+	var tv extension.TypeValue
 	var err error
 	switch kind {
 	case protoreflect.BoolKind:
@@ -145,16 +149,15 @@ func inferTypeValue(field *protogen.Field) (extensions.TypeValue, error) {
 		tv = TypeValueInt64()
 	case protoreflect.MessageKind:
 		if field.Desc.IsList() {
-			tv = NewListTypeValue(field.Message)
+			return NewListTypeValue(field.Message), nil
 		} else if field.Desc.IsMap() {
 			if field.Message.Fields[0].Desc.Kind() != protoreflect.StringKind {
 				err = fmt.Errorf("unsupported map key type: %s", field.Message.Fields[0].Desc.Kind())
 				break
 			}
-			tv = NewMapTypeValue(field.Message.Fields[2].Message)
+			return NewMapTypeValue(field.Message.Fields[2].Message), nil
 		}
-
-		return tv, nil
+		return NewNestedSingleObjectTypeValue(field.Message), nil
 	case protoreflect.StringKind:
 		tv, _ = TypeValueString().(*typeValue)
 	default:
@@ -169,7 +172,6 @@ func inferTypeValue(field *protogen.Field) (extensions.TypeValue, error) {
 func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
-			// TODO: push implementation of github.com/hashicorp/terraform-plugin-framework/types/basetypes.ObjectTypable to pb
 			Name:       fmt.Sprintf("%sTfType", message.GoIdent.GoName),
 			ImportPath: string(message.GoIdent.GoImportPath),
 		},

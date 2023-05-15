@@ -1,49 +1,44 @@
-package terraform
+package extensionimpl
 
 import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extensions"
+	"github.com/travix/protoc-gen-goterraform/extension"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
-var _ extensions.Block = &block{}
+var _ extension.Block = &block{}
 
 type block struct {
-	_type      protoreflect.ExtensionType
-	attributes []extensions.Attribute
-	members    map[string]*pb.GoType
-	option     *pb.Block
+	_type   protoreflect.ExtensionType
+	members map[string]*pb.GoType
+	option  *pb.Block
+	model   extension.Model
 }
 
-func NewBlock(synth extensions.Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (extensions.Block, error) {
+func NewBlock(synth extension.Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (extension.Block, error) {
 	b := &block{_type: blockType}
 	b.option = synth.MessageOption(msg.Desc, blockType)
 	if b.option == nil {
 		return nil, nil
 	}
-	for _, field := range msg.Fields {
-		attr, err := synth.BlockAttribute(field, b.option.ExplicitFields)
-		if err != nil {
-			return nil, err
-		}
-		if attr == nil {
-			continue
-		}
-		b.attributes = append(b.attributes, attr)
-	}
 	b.setName(msg)
+	var err error
+	b.model, err = synth.Model(msg, b.option.ExplicitFields)
+	if err != nil {
+		return nil, err
+	}
 	return b, nil
-}
-
-func (b *block) Attributes() []extensions.Attribute {
-	return b.attributes
 }
 
 func (b *block) Members() map[string]*pb.GoType {
 	return b.option.Members
+}
+
+func (b *block) Model() extension.Model {
+	return b.model
 }
 
 func (b *block) Name() string {

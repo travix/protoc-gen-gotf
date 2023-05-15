@@ -8,6 +8,7 @@ import "plugin.proto";
 
 option (provider) = {
   name: "valid-01"
+  package: ".;testpb"
 };
 
 message User {
@@ -19,7 +20,7 @@ message UserData {
   option map_entry = true;
   option (datasource) = { name: "User", explicit_fields: true };
   string email = 1 [(attribute) = {}]; // user email address
-  string FirstName = 2 [(attribute) = {}]; // user first name
+  string FirstName = 2 [(attribute) = {}];
 }
 
 

@@ -1,17 +1,13 @@
-package terraform
+package extensionimpl
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extensions"
-	"github.com/travix/protoc-gen-goterraform/mocks"
+	"github.com/travix/protoc-gen-goterraform/extension"
 	"github.com/travix/protoc-gen-goterraform/pb"
 )
 
@@ -41,7 +37,7 @@ func TestNewAttribute(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    extensions.Attribute
+		want    extension.Attribute
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{name: "returns nil", wantErr: assert.NoError},
@@ -58,73 +54,6 @@ func TestNewAttribute(t *testing.T) {
 			assert.Equalf(t, tt.want, got, "NewAttribute(%v)", tt.args.option)
 		})
 	}
-}
-
-func TestNewBlockAttribute(t *testing.T) {
-	t.Run("returns nil if explicit fields", func(t *testing.T) {
-		mocked := &extensions.MockedSynthesizer{}
-		mocked.On("FieldOption", mock.Anything).Return(nil)
-		got, err := NewBlockAttribute(mocked, &protogen.Field{}, true)
-		assert.NoError(t, err)
-		assert.Nil(t, got)
-		mocked.AssertExpectations(t)
-	})
-	t.Run("returns from field and option", func(t *testing.T) {
-		mockedSynth := &extensions.MockedSynthesizer{}
-		mocked := &mocks.MockedFieldDescriptor{}
-		mockedSynth.On("FieldOption", mock.Anything).Return(&pb.Attribute{Name: proto.String("name")})
-		mocked.On("Kind").Return(protoreflect.BoolKind)
-		mocked.On("IsList").Return(false)
-		mocked.On("IsMap").Return(false)
-		got, err := NewBlockAttribute(mockedSynth, &protogen.Field{
-			Desc: mocked,
-			Comments: protogen.CommentSet{
-				Leading: "description",
-			},
-		}, false)
-		assert.NoError(t, err)
-		assert.Equal(t, &attribute{
-			Attribute: &pb.Attribute{
-				Name:          proto.String("name"),
-				Description:   proto.String("description"),
-				MdDescription: proto.String("description"),
-				Deprecation:   proto.String(""),
-			},
-			typeValue: TypeValueBool(),
-			schema:    SchemaBool(),
-		}, got)
-		mocked.AssertExpectations(t)
-	})
-	t.Run("override's the type defined in option", func(t *testing.T) {
-		mockedSynth := &extensions.MockedSynthesizer{}
-		mocked := &mocks.MockedFieldDescriptor{}
-		option := &pb.Attribute{
-			Name: proto.String("name"),
-			Attr: pb.AttrType_int64_attr.Enum(),
-		}
-		mockedSynth.On("FieldOption", mock.Anything).Return(option)
-		mocked.On("Kind").Return(protoreflect.FloatKind)
-		mocked.On("IsList").Return(false)
-		mocked.On("IsMap").Return(false)
-		got, err := NewBlockAttribute(mockedSynth, &protogen.Field{
-			Desc: mocked,
-			Comments: protogen.CommentSet{
-				Leading: "description",
-			},
-		}, false)
-		assert.NoError(t, err)
-		assert.Equal(t, &attribute{
-			Attribute: &pb.Attribute{
-				Name:          proto.String("name"),
-				Description:   proto.String("description"),
-				MdDescription: proto.String("description"),
-				Deprecation:   proto.String(""),
-			},
-			typeValue: TypeValueFloat64(),
-			schema:    SchemaFloat64(),
-		}, got)
-		mocked.AssertExpectations(t)
-	})
 }
 
 func Test_attribute(t *testing.T) {

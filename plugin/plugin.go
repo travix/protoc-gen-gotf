@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
 
-	"github.com/travix/protoc-gen-goterraform/internal/terraform"
+	"github.com/travix/protoc-gen-goterraform/extensionimpl"
 )
 
 const Name = "protoc-gen-goterraform"
@@ -39,7 +39,7 @@ func Run(gen *protogen.Plugin) error {
 	SetOptions(gen.Request.GetParameter())
 	p := &plugin{Plugin: gen}
 	var in Input
-	if in, err = NewInput(gen, terraform.NewSynthesizer(protogen.GoImportPath(opt.module))); err != nil {
+	if in, err = NewInput(gen, extensionimpl.NewSynthesizer(opt.module)); err != nil {
 		return err
 	} else if in == nil {
 		log.Debug().Msg("no files to generate")

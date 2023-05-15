@@ -1,4 +1,4 @@
-package extensions
+package extension
 
 import (
 	"github.com/travix/protoc-gen-goterraform/pb"
@@ -8,6 +8,8 @@ type Attribute interface {
 	Computed() bool
 	Deprecation() string
 	Description() string
+	ElementType() string
+	GoName() string
 	MdDescription() string
 	Name() string
 	Optional() bool

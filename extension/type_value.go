@@ -1,4 +1,4 @@
-package extensions
+package extension
 
 import (
 	"google.golang.org/protobuf/compiler/protogen"
