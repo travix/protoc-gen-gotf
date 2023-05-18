@@ -7,14 +7,13 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var (
 	_                  extension.TypeValue = &typeValue{}
 	ErrUnsupportedKind                     = errors.New("unsupported protoreflect.Kind")
-	ErrUnknownAttrType                     = errors.New("error unknown value")
 )
 
 type typeValue struct {
@@ -24,6 +23,17 @@ type typeValue struct {
 	message         *protogen.Message
 	terraformNative bool
 	value           *pb.GoIdentity
+}
+
+func (t typeValue) NestedTypeValue() string {
+	if t.message == nil {
+		panic("typeValue is not a nested type")
+	}
+	return fmt.Sprintf("&%s{}", t.message.GoIdent.GoName)
+}
+
+func (t typeValue) IsNestedSingleObject() bool {
+	return t.message != nil && !t.isList && !t.isMap
 }
 
 func NewMapTypeValue(message *protogen.Message) extension.TypeValue {
@@ -118,24 +128,6 @@ func (t typeValue) Type() *pb.GoIdentity {
 	return t._type
 }
 
-func explicitTypeValue(attrType *pb.AttrType) (extension.TypeValue, error) {
-	if attrType == nil {
-		return nil, nil
-	}
-	switch *attrType {
-	case pb.AttrType_bool_attr:
-		return TypeValueBool(), nil
-	case pb.AttrType_string_attr:
-		return TypeValueString(), nil
-	case pb.AttrType_int64_attr:
-		return TypeValueInt64(), nil
-	case pb.AttrType_float64_attr:
-		return TypeValueFloat64(), nil
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnknownAttrType, attrType)
-	}
-}
-
 func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	kind := field.Desc.Kind()
 	var tv extension.TypeValue
@@ -150,7 +142,8 @@ func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	case protoreflect.MessageKind:
 		if field.Desc.IsList() {
 			return NewListTypeValue(field.Message), nil
-		} else if field.Desc.IsMap() {
+		}
+		if field.Desc.IsMap() {
 			if field.Message.Fields[0].Desc.Kind() != protoreflect.StringKind {
 				err = fmt.Errorf("unsupported map key type: %s", field.Message.Fields[0].Desc.Kind())
 				break
@@ -165,6 +158,9 @@ func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error at %s#%s: %w", field.Location.SourceFile, field.Location.Path, err)
+	}
+	if tv == nil {
+		return nil, fmt.Errorf("error failed to infer type value for %s", field.Desc.FullName())
 	}
 	return tv, nil
 }

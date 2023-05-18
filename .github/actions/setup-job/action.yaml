@@ -1,5 +1,5 @@
 name: Setup Workflow job
-description: Clone repository, setup Go, install Protoc, generate code, download dependencies
+description: Clone repository, setup Go, install Protoc, gocode code, download dependencies
 runs:
   using: composite
   steps:
@@ -14,7 +14,7 @@ runs:
       uses: arduino/setup-protoc@v1
     - name: Generate
       shell: bash
-      run: go generate ./...
+      run: go gocode ./...
     - name: Download dependencies
       if: steps.setup-go.outputs.cache-hit != 'true'
       shell: bash

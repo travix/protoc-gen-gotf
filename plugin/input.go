@@ -5,51 +5,42 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/runtime/protoimpl"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var _ Input = &input{}
 
 type Input interface {
 	Datasources() []extension.Block
-	Dependencies() []extension.Model
+	Dependencies() map[protoreflect.FullName][]extension.Model
 	Provider() extension.Provider
 	Resources() []extension.Block
+	AllBlocks() []extension.Block
 }
 
 type input struct {
 	providerProtoFile string
 	provider          extension.Provider
 	blocks            []extension.Block
-	dependencies      []extension.Model
+	dependencies      map[protoreflect.FullName][]extension.Model
 }
 
-// NewInput returns goterraform *input.
-func NewInput(gen *protogen.Plugin, synthesizer extension.Synthesizer) (Input, error) {
-	in := &input{}
+// NewInput returns gotf *input.
+func NewInput(synthesizer extension.Synthesizer, gen *protogen.Plugin) (Input, error) {
+	in := &input{dependencies: make(map[protoreflect.FullName][]extension.Model)}
 	for _, file := range gen.Files {
 		if !file.Generate {
 			log.Debug().Msgf("skipped %s not in requested files", file.Proto.GetName())
 			continue
 		}
 		log.Debug().Msgf("parsing %s files", file.Proto.GetName())
-		if err := in.setProvider(file, synthesizer); err != nil {
-			return nil, err
-		}
 		if err := in.addBlocks(file, synthesizer); err != nil {
 			return nil, err
 		}
-	}
-	if in.provider == nil {
-		log.Warn().Msgf("no provider found: %s option not set in any of the proto files", pb.E_Provider.TypeDescriptor().FullName())
-		return nil, nil
-	}
-	if len(in.blocks) == 0 {
-		log.Warn().Msgf("no resources or datasources found: %s or %s option not set in any of the proto files", pb.E_Resource.TypeDescriptor().FullName(), pb.E_Datasource.TypeDescriptor().FullName())
-		return nil, nil
 	}
 	return in, nil
 }
@@ -64,7 +55,7 @@ func (in *input) Datasources() []extension.Block {
 	return resource
 }
 
-func (in *input) Dependencies() []extension.Model {
+func (in *input) Dependencies() map[protoreflect.FullName][]extension.Model {
 	return in.dependencies
 }
 
@@ -82,10 +73,20 @@ func (in *input) Resources() []extension.Block {
 	return resource
 }
 
+func (in *input) AllBlocks() []extension.Block {
+	return in.blocks
+}
+
 // addBlocks sets resources and datasources as input.
 func (in *input) addBlocks(file *protogen.File, synthesizer extension.Synthesizer) error {
 	blocks := make([]extension.Block, 0)
+	file.Desc.FullName()
 	for _, message := range file.Messages {
+		if found, err := in.setProvider(message, synthesizer); err != nil {
+			return err
+		} else if found {
+			continue
+		}
 		for _, blockType := range []*protoimpl.ExtensionInfo{pb.E_Resource, pb.E_Datasource} {
 			block, err := synthesizer.Block(message, blockType)
 			if err != nil {
@@ -123,9 +124,9 @@ func (in *input) messageChain(message *protogen.Message) []*protogen.Message {
 
 func (in *input) setBlock(block extension.Block) error {
 	for _, b := range in.blocks {
-		name := b.Name()
+		name := b.GoName()
 		typeName := b.TypeName()
-		if name == block.Name() && typeName == block.TypeName() {
+		if name == block.GoName() && typeName == block.TypeName() {
 			return fmt.Errorf("error duplicate terraform blocks: name: %s, type: %s", name, typeName)
 		}
 	}
@@ -150,28 +151,33 @@ func (in *input) addDependencies(synthesizer extension.Synthesizer, model extens
 	// add message as dependency since it's not a native terraform type
 DEPENDENCIES:
 	for _, dependency := range newDependencies {
-		for _, existing := range in.dependencies {
+		srcFileName := dependency.Message().Desc.ParentFile().FullName()
+		if _, ok := in.dependencies[srcFileName]; !ok {
+			in.dependencies[srcFileName] = make([]extension.Model, 0)
+		}
+		for _, existing := range in.dependencies[srcFileName] {
 			// make sure we don't add the same dependency twice
 			if existing.Message().GoIdent.String() == dependency.Message().GoIdent.String() {
 				continue DEPENDENCIES
 			}
 		}
-		in.dependencies = append(in.dependencies, dependency)
+		in.dependencies[srcFileName] = append(in.dependencies[srcFileName], dependency)
 	}
 	return nil
 }
 
 // setProvider if not already set, and error if multiple providers found.
-func (in *input) setProvider(file *protogen.File, synthesizer extension.Synthesizer) error {
-	provider, err := synthesizer.Provider(file.Desc)
+func (in *input) setProvider(message *protogen.Message, synthesizer extension.Synthesizer) (bool, error) {
+	provider, err := synthesizer.Provider(message)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if in.provider == nil {
 		in.provider = provider
-		in.providerProtoFile = file.Desc.Path()
+		in.providerProtoFile = message.Desc.ParentFile().Path()
+		return true, nil
 	} else if provider != nil {
-		return fmt.Errorf("error multiple providers: %s options found in %s and %s", pb.E_Provider.TypeDescriptor().FullName(), in.providerProtoFile, file.Desc.Path())
+		return false, fmt.Errorf("error multiple providers: %s options found in %s and %s", pb.E_Provider.TypeDescriptor().FullName(), in.providerProtoFile, message.Desc.ParentFile().Path())
 	}
-	return nil
+	return false, nil
 }

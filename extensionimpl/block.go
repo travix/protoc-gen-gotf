@@ -5,8 +5,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var _ extension.Block = &block{}
@@ -25,12 +25,27 @@ func NewBlock(synth extension.Synthesizer, msg *protogen.Message, blockType prot
 		return nil, nil
 	}
 	b.setName(msg)
+	b.option.Description = *deferToComment(&b.option.Description, msg.Comments)
 	var err error
 	b.model, err = synth.Model(msg, b.option.ExplicitFields)
 	if err != nil {
 		return nil, err
 	}
 	return b, nil
+}
+
+func (b *block) Description() string {
+	return b.option.Description
+}
+
+func (b *block) Filename() string {
+	name := b.TfName()
+	if b._type == pb.E_Resource {
+		name += "_resource"
+	} else {
+		name += "_datasource"
+	}
+	return name + ".pb.go"
 }
 
 func (b *block) Members() map[string]*pb.GoType {
@@ -41,12 +56,16 @@ func (b *block) Model() extension.Model {
 	return b.model
 }
 
-func (b *block) Name() string {
+func (b *block) GoName() string {
 	return *b.option.Name
 }
 
 func (b *block) Option() *pb.Block {
 	return b.option
+}
+
+func (b *block) TfName() string {
+	return toSnakeCase(b.GoName())
 }
 
 func (b *block) Type() protoreflect.ExtensionType {

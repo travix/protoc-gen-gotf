@@ -1,24 +1,21 @@
 syntax = "proto3";
 
-package goterraform;
+package gotf;
 
 option go_package = ".;testpb";
 
-import "plugin.proto";
+import "gotf.proto";
 
-option (provider) = {
-  name: "valid"
-  attributes: {
-
-  }
-};
+message Valid02 {
+  option (provider) = {name: "valid", pb_package: ".;testpb"};
+}
 
 message User {
   option (resource) = {
     name: "Person"
   };
   string email = 1;
-  string name = 2 [(goterraform.attribute) = {skip: true}];
+  string name = 2 [(attribute) = {skip: true}];
 }
 
 message Group {
@@ -35,5 +32,5 @@ message Group {
     }
   };
   repeated string emails = 1;
-  repeated User members = 2 [(goterraform.attribute) = {}];
+  repeated User members = 2 [(attribute) = {}];
 }

@@ -5,14 +5,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/travix/protoc-gen-goterraform/pb"
-	"github.com/travix/protoc-gen-goterraform/testdata"
+	"github.com/travix/protoc-gen-gotf/pb"
+	"github.com/travix/protoc-gen-gotf/testdata"
 )
 
 func Test_synthesizer_Provider(t *testing.T) {
 	s := &synthesizer{}
 	sub := testdata.NewStub(t, "../testdata/valid-01/code_generator_request.pb.bin")
-	got, err := s.Provider(sub.File("test.proto").Desc)
+	got, err := s.Provider(sub.Message("Valid01"))
 	if !assert.NoError(t, err) {
 		return
 	}

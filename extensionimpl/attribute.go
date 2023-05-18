@@ -5,60 +5,66 @@ import (
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var _ extension.Attribute = &attribute{}
 
 type attribute struct {
-	*pb.Attribute
 	elementType string
+	option      *pb.Attribute
 	schema      *pb.GoIdentity
 	typeValue   extension.TypeValue
 }
 
-func NewAttribute(option *pb.Attribute) (extension.Attribute, error) {
-	if option == nil {
-		return nil, nil
-	}
+func NewAttribute(synth extension.Synthesizer, field *protogen.Field, explicit bool) (extension.Attribute, error) {
 	a := &attribute{}
-	a.Attribute = option
-	if a.Attribute.Skip {
+	a.option = synth.FieldOption(field.Desc)
+	if a.option == nil {
+		if explicit {
+			return nil, nil
+		}
+		a.option = &pb.Attribute{}
+	}
+	if a.option.Skip {
 		return nil, nil
 	}
-	a.Attribute.Deprecation = deferToComment(option.Deprecation, protogen.CommentSet{})
-	a.Attribute.Description = deferToComment(option.Description, protogen.CommentSet{})
-	a.Attribute.MdDescription = deferToComment(option.MdDescription, protogen.CommentSet{})
-	if option.Name == nil {
-		return nil, fmt.Errorf("attribute name is required")
+	if a.option.Name == nil {
+		a.option.Name = proto.String(field.GoName)
 	}
-	if strings.TrimSpace(*option.Name) == "" {
+	if strings.TrimSpace(*a.option.Name) == "" {
 		return nil, fmt.Errorf("attribute name can't be empty string")
 	}
+	a.option.Description = deferToComment(a.option.Description, field.Comments)
+	a.option.MdDescription = deferToComment(a.option.MdDescription, field.Comments)
+	a.option.Deprecation = deferToComment(a.option.Deprecation, protogen.CommentSet{})
 	var err error
-	if option.Attr != nil {
-		if a.typeValue, err = explicitTypeValue(option.Attr); err != nil {
-			return nil, err
-		}
-		if a.schema, err = schemaForAttrType(*option.Attr); err != nil {
-			return nil, err
-		}
+	if a.typeValue, err = inferTypeValue(field); err != nil {
+		return nil, err
+	}
+	if a.schema, err = Schema(field); err != nil {
+		return nil, err
+	}
+	if field.Message != nil {
+		// note message will implement terraform typable through extension.Model
+		a.elementType = fmt.Sprintf("&%s{}", field.Message.GoIdent.GoName)
 	}
 	return a, nil
 }
 
 func (a *attribute) Computed() bool {
-	return a.MustBe == pb.MustBe_Computed || a.MustBe == pb.MustBe_OptionalAndComputed
+	return a.option.MustBe == pb.MustBe_Computed || a.option.MustBe == pb.MustBe_OptionalAndComputed
 }
 
 func (a *attribute) Deprecation() string {
-	return *a.Attribute.Description
+	return *a.option.Description
 }
 
 func (a *attribute) Description() string {
-	return *a.Attribute.Description
+	return *a.option.Description
 }
 
 func (a *attribute) ElementType() string {
@@ -66,23 +72,23 @@ func (a *attribute) ElementType() string {
 }
 
 func (a *attribute) GoName() string {
-	return *a.Attribute.Name
+	return *a.option.Name
 }
 
 func (a *attribute) MdDescription() string {
-	return *a.Attribute.MdDescription
+	return *a.option.MdDescription
 }
 
 func (a *attribute) Name() string {
-	return toSnakeCase(*a.Attribute.Name)
+	return toSnakeCase(*a.option.Name)
 }
 
 func (a *attribute) Optional() bool {
-	return a.MustBe == pb.MustBe_Optional || a.MustBe == pb.MustBe_OptionalAndComputed
+	return a.option.MustBe == pb.MustBe_Optional || a.option.MustBe == pb.MustBe_OptionalAndComputed
 }
 
 func (a *attribute) Required() bool {
-	return a.MustBe == pb.MustBe_Required
+	return a.option.MustBe == pb.MustBe_Required
 }
 
 func (a *attribute) Schema() *pb.GoIdentity {
@@ -90,26 +96,9 @@ func (a *attribute) Schema() *pb.GoIdentity {
 }
 
 func (a *attribute) Sensitive() bool {
-	return a.Attribute.Sensitive != nil && *a.Attribute.Sensitive
+	return a.option.Sensitive != nil && *a.option.Sensitive
 }
 
 func (a *attribute) TypeValue() extension.TypeValue {
 	return a.typeValue
-}
-
-func deferToComment(direct *string, comments protogen.CommentSet) *string {
-	if direct != nil {
-		return direct
-	}
-	var str string
-	for index, c := range comments.LeadingDetached {
-		if index > 0 {
-			str += "\n"
-		}
-		str += c.String()
-	}
-	str += string(comments.Leading)
-	str += string(comments.Trailing)
-	str = strings.TrimSpace(str)
-	return &str
 }

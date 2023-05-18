@@ -1,26 +1,22 @@
 syntax = "proto3";
 
-package goterraform;
+package gotf;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "github.com/travix/protoc-gen-goterraform/pb";
+option go_package = "github.com/travix/gotf";
 
-/* Extend FileOptions to add (goterraform.provider) option. */
-extend google.protobuf.FileOptions {
-  // define provider for this package, should be set only once per package.
-  optional Option provider = 82848;
-}
-
-/* Extend MessageOptions to add (goterraform.block) option. */
+/* Extend MessageOptions to add (gotf.block) option. */
 extend google.protobuf.MessageOptions {
+  // define provider for this package, should be set only once per package.
+  optional Provider provider = 82848;
   // define this message as a resource
   optional Block resource = 82849;
   // define this message as a datasource
   optional Block datasource = 82850;
 }
 
-/* Extend FieldOptions to add (goterraform.attribute) option. */
+/* Extend FieldOptions to add (gotf.attribute) option. */
 extend google.protobuf.FieldOptions {
   // define this field's terraform attribute on this resource and/ or datasource.
   optional Attribute attribute = 82851;
@@ -140,10 +136,10 @@ message Block {
   // explicit_fields if set to `false` (default), all fields will be generated as
   // attributes in this terraform block.
   //
-  // If set to `true`, only fields with `goterraform.Attribute` will be generated
+  // If set to `true`, only fields with `gotf.Attribute` will be generated
   // as an attributes in this terraform block.
   //
-  // Check goterraform.Attribute for default attribute properties.
+  // Check gotf.Attribute for default attribute properties.
   bool explicit_fields = 2;
   // members to be set on go struct being generated for this terraform block.
   // These are helper fields for block such as grpc clients, rest clients, etc and not
@@ -151,6 +147,7 @@ message Block {
   //
   // Map's key is name of the field on struct. Should follow go struct field naming convention.
   map <string, GoType> members = 3;
+  string description = 4;
 }
 
 /* Must is used to set terraform block attribute's required, optional or computed
@@ -184,14 +181,11 @@ message Attribute {
   // deprecation is used to set terraform attribute's deprecation message.
   optional string deprecation = 7;
 
-  // att is required if this an provider attribute. It is ignored for block attributes.
-  optional AttrType attr = 8;
-
   // TODO: support attr to override/ proxy field's attribute block. Will require to use go reflect maybe?
 }
 
 // Option to create provider for this package.
-message Option {
+message Provider {
   // name is used to set terraform provider type name, all resources and datasources
   // will be generated under this provider.
   //
@@ -201,16 +195,14 @@ message Option {
   //   resource "xyz_resource_name" { ... }
   //   data "xyz_datasource_name" { ... }
   string name = 1;
-  // attributes of terraform provider such as access_key, secret_key, endpoint, etc.
-  repeated Attribute attributes = 2;
   // package where all generated proto messages are placed (by protoc-gen-go)
   //
   // This field is required.
-  string package = 4;
+  string pb_package = 3;
   // package where generated terraform go code should be placed
   //
-  // If not set files will be placed in go_package.
-  string provider_package = 5;
+  // If not set files will be placed in ./provider.
+  string provider_package = 4;
   // module of this project, defined in go.mod. It is used in go import statements
   // to access protobuf messages used by the provider.
   //
@@ -218,11 +210,13 @@ message Option {
   //   protoc --go_opt=module=...
   //
   // Required if provider package is different from any of the other proto files
-  optional string module = 6;
+  optional string module = 5;
   // members to be set on go struct being generated for this terraform provider.
   // These are helper fields for provider such as grpc connection and not
   // terraform attributes of the provider.
   //
   // Map's key is name of the field on struct. Should follow go struct field naming convention.
-  map <string, GoType> members = 3;
+  map <string, GoType> members = 6;
+  // description is used to set terraform provider's description.
+  string description = 7;
 }

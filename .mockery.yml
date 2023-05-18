@@ -7,7 +7,7 @@ dir: "{{.InterfaceDir}}"
 filename: "{{.InterfaceNameSnake}}_mock.go"
 mockname: "Mocked{{.InterfaceName}}"
 packages:
-  github.com/travix/protoc-gen-goterraform/extension:
+  github.com/travix/protoc-gen-gotf/extension:
     interfaces:
       Attribute:
       Block:
@@ -15,6 +15,6 @@ packages:
       Provider:
       Synthesizer:
       TypeValue:
-  github.com/travix/protoc-gen-goterraform/generate:
+  github.com/travix/protoc-gen-gotf/gocode:
     interfaces:
-      Generator:
+      Writer:

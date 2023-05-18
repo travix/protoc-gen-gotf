@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/protobuf/compiler/protogen"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 func TestNewBlock(t *testing.T) {
@@ -56,7 +56,7 @@ func TestNewBlock(t *testing.T) {
 		if !assert.NotNil(t, got) {
 			return
 		}
-		assert.Equal(t, "test", got.Name())
+		assert.Equal(t, "test", got.GoName())
 		assert.NotNil(t, got.Model())
 		assert.Len(t, got.Members(), 1, "len(Members()) = 1")
 		mocked.AssertExpectations(t)
@@ -76,5 +76,5 @@ func Test_block(t *testing.T) {
 			GoName: "test",
 		},
 	})
-	assert.Equal(t, "test", b.Name())
+	assert.Equal(t, "test", b.GoName())
 }

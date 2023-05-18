@@ -6,47 +6,41 @@ import (
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var _ extension.Provider = &provider{}
 
 type provider struct {
-	attributes    []extension.Attribute
-	option        *pb.Option
 	importPath    protogen.GoImportPath
-	packageName   protogen.GoPackageName
-	pbPackageName protogen.GoPackageName
-	pbImportPath  protogen.GoImportPath
+	model         extension.Model
 	module        string
+	option        *pb.Provider
+	packageName   protogen.GoPackageName
+	pbImportPath  protogen.GoImportPath
+	pbPackageName protogen.GoPackageName
 }
 
-func NewProvider(synth extension.Synthesizer, desc protoreflect.FileDescriptor) (extension.Provider, error) {
-	option := synth.FileOption(desc)
+func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.Provider, error) {
+	option := synth.ProviderOption(msg.Desc)
 	if option == nil {
 		return nil, nil
 	}
 	p := &provider{option: option}
 	if p.option.Name == "" {
-		return nil, fmt.Errorf("error goterraform.provider.name option not found in %s", desc.Path())
+		p.option.Name = msg.GoIdent.GoName
 	}
-	if p.option.Package == "" {
-		return nil, fmt.Errorf("error goterraform.provider.package option is required in %s", desc.Path())
+	if p.option.PbPackage == "" {
+		return nil, fmt.Errorf("error gotf.provider.package option is required in %s#%s", msg.Location.SourceFile, msg.Location.Path)
 	}
 	p.setPb(synth, option)
 	p.setPkgAndPath()
-	for index, optionAttribute := range p.option.Attributes {
-		attr, err := synth.Attribute(optionAttribute)
-		if err != nil {
-			return nil, fmt.Errorf("error failed to parse %s.attributes[%d] from %s: %w", pb.E_Provider.TypeDescriptor().FullName(), index, desc.Path(), err)
-		}
-		if attr == nil {
-			continue
-		}
-		p.attributes = append(p.attributes, attr)
+	var err error
+	p.model, err = synth.Model(msg, false)
+	if err != nil {
+		return nil, err
 	}
 	return p, nil
 }
@@ -60,15 +54,15 @@ func (p *provider) setPkgAndPath() {
 	}
 }
 
-func (p *provider) setPb(synth extension.Synthesizer, option *pb.Option) {
-	seg := strings.Split(p.option.Package, ";")
+func (p *provider) setPb(synth extension.Synthesizer, option *pb.Provider) {
+	seg := strings.Split(p.option.PbPackage, ";")
 	pkg := filepath.Base(seg[len(seg)-1])
 	p.pbPackageName = protogen.GoPackageName(pkg)
-	seg = strings.Split(p.option.Package, ";")
+	seg = strings.Split(p.option.PbPackage, ";")
 	p.pbImportPath = protogen.GoImportPath(seg[0])
 	p.module = ""
 	if p.option.ProviderPackage == "" {
-		p.option.ProviderPackage = p.option.Package
+		p.option.ProviderPackage = "providerpb"
 		p.module = synth.Module()
 	}
 	if option.Module != nil {
@@ -79,14 +73,6 @@ func (p *provider) setPb(synth extension.Synthesizer, option *pb.Option) {
 	}
 }
 
-func (p *provider) Attributes() []extension.Attribute {
-	return p.attributes
-}
-
-func (p *provider) GoImportPath() protogen.GoImportPath {
-	return protogen.GoImportPath(*p.option.Module)
-}
-
 func (p *provider) Members() map[string]*pb.GoType {
 	return p.option.Members
 }
@@ -95,7 +81,27 @@ func (p *provider) Name() string {
 	return p.option.Name
 }
 
-func (p *provider) Option() *pb.Option {
+func (p *provider) GoName() string {
+	return toCamelCase(p.option.Name)
+}
+
+func (p *provider) Description() string {
+	return p.option.Description
+}
+
+func (p *provider) Filename() string {
+	return "provider.go"
+}
+
+func (p *provider) Model() extension.Model {
+	return p.model
+}
+
+func (p *provider) TfName() string {
+	return toSnakeCase(p.GoName())
+}
+
+func (p *provider) Option() *pb.Provider {
 	return p.option
 }
 

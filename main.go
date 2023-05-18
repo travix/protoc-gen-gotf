@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
 
-	"github.com/travix/protoc-gen-goterraform/plugin"
+	"github.com/travix/protoc-gen-gotf/plugin"
 )
 
 //go:generate ./gen.sh

@@ -1,98 +1,138 @@
 package extensionimpl
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/extension"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
+type MockedFieldDescriptor struct {
+	protoreflect.FieldDescriptor
+	mock.Mock
+}
+
+func (m *MockedFieldDescriptor) Kind() protoreflect.Kind {
+	args := m.Called()
+	return args.Get(0).(protoreflect.Kind) // nolint:forcetypeassert
+}
+
+func (m *MockedFieldDescriptor) IsList() bool {
+	args := m.Called()
+	return args.Get(0).(bool) // nolint:forcetypeassert
+}
+
+func (m *MockedFieldDescriptor) IsMap() bool {
+	args := m.Called()
+	return args.Get(0).(bool) // nolint:forcetypeassert
+}
+
 func TestNewAttribute(t *testing.T) {
-	type args struct {
-		option *pb.Attribute
-	}
-	opt1 := &pb.Attribute{
-		Name:          proto.String("name"),
-		MustBe:        pb.MustBe_Required,
-		Sensitive:     proto.Bool(true),
-		Description:   proto.String("description"),
-		MdDescription: proto.String("md_description"),
-		Deprecation:   proto.String("deprecation"),
-	}
-	opt2 := &pb.Attribute{
-		Name:          proto.String("name"),
-		MustBe:        pb.MustBe_Required,
-		Sensitive:     proto.Bool(true),
-		Description:   proto.String("description"),
-		MdDescription: proto.String("md_description"),
-		Deprecation:   proto.String("deprecation"),
-		Attr:          pb.AttrType_string_attr.Enum(),
-	}
-	tv := TypeValueString()
-	schema := SchemaString()
-	tests := []struct {
-		name    string
-		args    args
-		want    extension.Attribute
-		wantErr assert.ErrorAssertionFunc
-	}{
-		{name: "returns nil", wantErr: assert.NoError},
-		{name: "skips", args: args{&pb.Attribute{Skip: true}}, wantErr: assert.NoError},
-		{name: "returns from option", args: args{opt1}, want: &attribute{Attribute: opt1}, wantErr: assert.NoError},
-		{name: "returns with TypeValue", args: args{opt2}, want: &attribute{Attribute: opt2, typeValue: tv, schema: schema}, wantErr: assert.NoError},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewAttribute(tt.args.option)
-			if !tt.wantErr(t, err, fmt.Sprintf("NewAttribute(%v)", tt.args.option)) {
-				return
-			}
-			assert.Equalf(t, tt.want, got, "NewAttribute(%v)", tt.args.option)
-		})
-	}
+	t.Run("returns nil when no option is found", func(t *testing.T) {
+		mockedSynth := &extension.MockedSynthesizer{}
+		mockedSynth.On("FieldOption", mock.Anything).Once().Return(nil, nil)
+		field := &protogen.Field{}
+		got, err := NewAttribute(mockedSynth, field, true)
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.Nil(t, got)
+		mockedSynth.AssertExpectations(t)
+	})
+	t.Run("returns Attribute when no option is found and explicit is false", func(t *testing.T) {
+		mockedSynth := &extension.MockedSynthesizer{}
+		mockedSynth.On("FieldOption", mock.Anything).Once().Return(&pb.Attribute{}, nil)
+		mockedDesc := &MockedFieldDescriptor{}
+		mockedDesc.On("Kind").Twice().Return(protoreflect.StringKind)
+		mockedDesc.On("IsList").Return(false)
+		mockedDesc.On("IsMap").Return(false)
+		field := &protogen.Field{GoName: "test", Desc: mockedDesc}
+		got, err := NewAttribute(mockedSynth, field, false)
+		if !assert.NoError(t, err) {
+			return
+		}
+		if !assert.NotNil(t, got) {
+			return
+		}
+		mockedSynth.AssertExpectations(t)
+		mockedDesc.AssertExpectations(t)
+	})
+	t.Run("skips when option.skip true", func(t *testing.T) {
+		mockedSynth := &extension.MockedSynthesizer{}
+		mockedSynth.On("FieldOption", mock.Anything).Once().Return(&pb.Attribute{Skip: true}, nil)
+		field := &protogen.Field{}
+		got, err := NewAttribute(mockedSynth, field, false)
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.Nil(t, got)
+		mockedSynth.AssertExpectations(t)
+	})
+	t.Run("returns Attribute", func(t *testing.T) {
+		mockedSynth := &extension.MockedSynthesizer{}
+		mockedSynth.On("FieldOption", mock.Anything).Once().Return(&pb.Attribute{}, nil)
+		mockedDesc := &MockedFieldDescriptor{}
+		mockedDesc.On("Kind").Twice().Return(protoreflect.StringKind)
+		mockedDesc.On("IsList").Return(false)
+		mockedDesc.On("IsMap").Return(false)
+		field := &protogen.Field{GoName: "test", Desc: mockedDesc}
+		got, err := NewAttribute(mockedSynth, field, false)
+		if !assert.NoError(t, err) {
+			return
+		}
+		if !assert.NotNil(t, got) {
+			return
+		}
+		mockedSynth.AssertExpectations(t)
+		mockedDesc.AssertExpectations(t)
+		assert.Equal(t, SchemaString(), got.Schema())
+		assert.Equal(t, TypeValueString(), got.TypeValue())
+	})
 }
 
 func Test_attribute(t *testing.T) {
 	t.Run("Computed", func(t *testing.T) {
-		a := &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Computed}}
+		a := &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Computed}}
 		assert.True(t, a.Computed())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
 		assert.True(t, a.Computed())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Required}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Required}}
 		assert.False(t, a.Computed())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Optional}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Optional}}
 		assert.False(t, a.Computed())
 	})
 	t.Run("Required", func(t *testing.T) {
-		a := &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Computed}}
+		a := &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Computed}}
 		assert.False(t, a.Required())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
 		assert.False(t, a.Required())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Required}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Required}}
 		assert.True(t, a.Required())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Optional}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Optional}}
 		assert.False(t, a.Required())
 	})
 	t.Run("Optional", func(t *testing.T) {
-		a := &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Computed}}
+		a := &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Computed}}
 		assert.False(t, a.Optional())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_OptionalAndComputed}}
 		assert.True(t, a.Optional())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Required}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Required}}
 		assert.False(t, a.Optional())
-		a = &attribute{Attribute: &pb.Attribute{MustBe: pb.MustBe_Optional}}
+		a = &attribute{option: &pb.Attribute{MustBe: pb.MustBe_Optional}}
 		assert.True(t, a.Optional())
 	})
 	t.Run("Sensitive", func(t *testing.T) {
-		a := &attribute{Attribute: &pb.Attribute{}}
+		a := &attribute{option: &pb.Attribute{}}
 		assert.False(t, a.Sensitive())
-		a = &attribute{Attribute: &pb.Attribute{Sensitive: proto.Bool(false)}}
+		a = &attribute{option: &pb.Attribute{Sensitive: proto.Bool(false)}}
 		assert.False(t, a.Sensitive())
-		a = &attribute{Attribute: &pb.Attribute{Sensitive: proto.Bool(true)}}
+		a = &attribute{option: &pb.Attribute{Sensitive: proto.Bool(true)}}
 		assert.True(t, a.Sensitive())
 	})
 }

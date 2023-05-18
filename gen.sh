@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 require() {
   if ! command -v "$1" &>/dev/null && [[ -n "$2" ]]; then
@@ -20,7 +20,9 @@ require mockery github.com/vektra/mockery/v2@v2.26.1
 require protoc
 
 echo "generating plugin.proto"
-protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-goterraform plugin.proto
+protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-gotf \
+  --go_opt=Mgotf.proto="github.com/travix/protoc-gen-gotf/pb;pb" \
+  gotf.proto
 
 echo "generating mocks"
 # TODO: remove this after https://github.com/vektra/mockery/discussions/549 is close

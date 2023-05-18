@@ -1,7 +1,7 @@
 package extension
 
 import (
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 type Attribute interface {

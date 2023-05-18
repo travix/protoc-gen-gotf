@@ -4,10 +4,13 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
 var (
@@ -15,7 +18,7 @@ var (
 	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
 )
 
-func getOptions[T *pb.Attribute | *pb.Block | *pb.Option](desc protoreflect.Descriptor, extType protoreflect.ExtensionType) (T, bool) {
+func getOptions[T *pb.Attribute | *pb.Block | *pb.Provider](desc protoreflect.Descriptor, extType protoreflect.ExtensionType) (T, bool) {
 	if desc == nil {
 		return nil, false
 	}
@@ -31,4 +34,30 @@ func toSnakeCase(name string) string {
 	snake := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+func toCamelCase(name string) string {
+	strs := strings.Split(name, "_")
+	title := cases.Title(language.Und).String
+	for index, str := range strs {
+		strs[index] = title(str)
+	}
+	return strings.Join(strs, "")
+}
+
+func deferToComment(direct *string, comments protogen.CommentSet) *string {
+	if direct != nil && *direct != "" {
+		return direct
+	}
+	var str string
+	for index, c := range comments.LeadingDetached {
+		if index > 0 {
+			str += "\n"
+		}
+		str += c.String()
+	}
+	str += string(comments.Leading)
+	str += string(comments.Trailing)
+	str = strings.TrimSpace(str)
+	return &str
 }

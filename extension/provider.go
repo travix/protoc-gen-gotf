@@ -3,19 +3,22 @@ package extension
 import (
 	"google.golang.org/protobuf/compiler/protogen"
 
-	"github.com/travix/protoc-gen-goterraform/pb"
+	"github.com/travix/protoc-gen-gotf/pb"
 )
 
-// Provider is helper to generate a terraform provider.
+// Provider is helper to gocode a terraform provider.
 //
-// //go:generate mockery --name Provider --output ../../mocks.
+// //go:gocode mockery --name Provider --output ../../mocks.
 type Provider interface {
-	Attributes() []Attribute
-	ImportPath() protogen.GoImportPath
-	Members() map[string]*pb.GoType
-	Name() string
-	Option() *pb.Option
-	PackageName() protogen.GoPackageName
-	PbImportPath() protogen.GoImportPath
-	PbPackageName() protogen.GoPackageName
+	Description() string
+	Filename() string
+	ImportPath() protogen.GoImportPath // old
+	Members() map[string]*pb.GoType    // old
+	Model() Model
+	GoName() string                        // old
+	Option() *pb.Provider                  // old
+	PackageName() protogen.GoPackageName   // old
+	PbImportPath() protogen.GoImportPath   // old
+	PbPackageName() protogen.GoPackageName // old
+	TfName() string
 }

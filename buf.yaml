@@ -1,0 +1,12 @@
+version: v1beta1
+name: buf.build/travix/gotf
+build:
+  excludes:
+    - testdata
+    - example
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

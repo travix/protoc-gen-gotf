@@ -45,12 +45,12 @@ linters-settings:
         arguments:
           - ["ID"] # AllowList
   goimports:
-    local-prefixes: github.com/travix/protoc-gen-goterraform
+    local-prefixes: github.com/travix/protoc-gen-gotf
   wrapcheck:
     ignoreSigRegexps:
-      - '.*github.com/travix/protoc-gen-goterraform/.*'
+      - '.*github.com/travix/protoc-gen-gotf/.*'
     ignorePackageGlobs:
-      - github.com/travix/protoc-gen-goterraform/*
+      - github.com/travix/protoc-gen-gotf/*
   gocyclo:
     min-complexity: 12
   gci:
@@ -58,5 +58,5 @@ linters-settings:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
       - dot
-      - prefix(github.com/travix/protoc-gen-goterraform) # local packages.
+      - prefix(github.com/travix/protoc-gen-gotf) # local packages.
     custom-order: true

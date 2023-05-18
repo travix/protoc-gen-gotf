@@ -20,7 +20,7 @@
 # Go workspace file
 go.work
 
-/protoc-gen-goterraform
+/protoc-gen-gotf
 *_mock.go
 *.pb.bin
 

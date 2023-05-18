@@ -3,7 +3,7 @@ package extensionimpl
 import (
 	"google.golang.org/protobuf/compiler/protogen"
 
-	"github.com/travix/protoc-gen-goterraform/extension"
+	"github.com/travix/protoc-gen-gotf/extension"
 )
 
 var _ extension.Model = &model{}
@@ -16,7 +16,7 @@ type model struct {
 func NewModel(synth synthesizer, msg *protogen.Message, explicit bool) (extension.Model, error) {
 	m := &model{message: msg}
 	for _, field := range msg.Fields {
-		attr, err := synth.FieldAttribute(field, explicit)
+		attr, err := synth.Attribute(field, explicit)
 		if err != nil {
 			return nil, err
 		}

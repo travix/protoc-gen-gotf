@@ -1,0 +1,9 @@
+version: v1beta1
+deps:
+  - buf.build/travix/gotf
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

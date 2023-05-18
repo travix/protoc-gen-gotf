@@ -1,15 +1,14 @@
 syntax = "proto3";
 
-package goterraform;
+package gotf;
 
 option go_package = ".;testpb";
 
-import "plugin.proto";
+import "gotf.proto";
 
-option (provider) = {
-  name: "valid-01"
-  package: ".;testpb"
-};
+message Valid01 {
+  option (provider) = {pb_package: ".;testpb"};
+}
 
 message User {
   option (resource) = {};
