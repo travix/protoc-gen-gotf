@@ -22,7 +22,7 @@ const Name = "protoc-gen-gotf"
 // opt is the plugin options. set only once in plugin run.
 var opt = &options{logLevel: zerolog.WarnLevel}
 
-// version in format "{version} {buildDate} {commit} {commitDate}", populated at compile time
+// version in format "{version} {buildDate} {commit} {commitDate}", populated at compile time.
 var version = "local 1970-01-01T00:00:00Z (e83c516 1970-01-01T00:00:00Z)"
 
 // options that can be passed to plugin.
