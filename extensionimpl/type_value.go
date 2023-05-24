@@ -20,20 +20,17 @@ type typeValue struct {
 	_type           *pb.GoIdentity
 	isList          bool
 	isMap           bool
-	message         *protogen.Message
 	terraformNative bool
 	value           *pb.GoIdentity
+	nestedType      string
 }
 
 func (t typeValue) NestedTypeValue() string {
-	if t.message == nil {
-		panic("typeValue is not a nested type")
-	}
-	return fmt.Sprintf("&%s{}", t.message.GoIdent.GoName)
+	return t.nestedType
 }
 
 func (t typeValue) IsNestedSingleObject() bool {
-	return t.message != nil && !t.isList && !t.isMap
+	return t.nestedType != "" && !t.isList && !t.isMap
 }
 
 func NewMapTypeValue(message *protogen.Message) extension.TypeValue {
@@ -112,9 +109,9 @@ func (t typeValue) IsMap() bool {
 	return t.isMap
 }
 
-func (t typeValue) Message() *protogen.Message {
-	return t.message
-}
+// func (t typeValue) Message() *protogen.Message {
+//	return t.message
+//}
 
 func (t typeValue) TerraformNative() bool {
 	return t.terraformNative
@@ -152,7 +149,7 @@ func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 		}
 		return NewNestedSingleObjectTypeValue(field.Message), nil
 	case protoreflect.StringKind:
-		tv, _ = TypeValueString().(*typeValue)
+		tv = TypeValueString()
 	default:
 		err = ErrUnsupportedKind
 	}
@@ -161,6 +158,11 @@ func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	}
 	if tv == nil {
 		return nil, fmt.Errorf("error failed to infer type value for %s", field.Desc.FullName())
+	}
+	if field.Desc.IsList() {
+		tvTyped, _ := tv.(*typeValue)
+		tvTyped.isList = true
+		tvTyped.nestedType = fmt.Sprintf("types.%s", tv.Type().Name)
 	}
 	return tv, nil
 }
@@ -176,8 +178,8 @@ func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 			Name:       message.GoIdent.GoName,
 			ImportPath: string(message.GoIdent.GoImportPath),
 		},
-		isList:  isList,
-		isMap:   isMap,
-		message: message,
+		isList:     isList,
+		isMap:      isMap,
+		nestedType: fmt.Sprintf("&%s{}", message.GoIdent.GoName),
 	}
 }

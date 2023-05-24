@@ -1,6 +1,8 @@
 package extensionimpl
 
 import (
+	"fmt"
+
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -12,10 +14,9 @@ import (
 var _ extension.Block = &block{}
 
 type block struct {
-	_type   protoreflect.ExtensionType
-	members map[string]*pb.GoType
-	option  *pb.Block
-	model   extension.Model
+	_type  protoreflect.ExtensionType
+	option *pb.Block
+	model  extension.Model
 }
 
 func NewBlock(synth extension.Synthesizer, msg *protogen.Message, blockType protoreflect.ExtensionType) (extension.Block, error) {
@@ -34,38 +35,47 @@ func NewBlock(synth extension.Synthesizer, msg *protogen.Message, blockType prot
 	return b, nil
 }
 
+func (b *block) Clients() []string {
+	return b.option.Client
+}
+
 func (b *block) Description() string {
 	return b.option.Description
 }
 
 func (b *block) Filename() string {
-	name := b.TfName()
-	if b._type == pb.E_Resource {
-		name += "_resource"
-	} else {
-		name += "_datasource"
-	}
-	return name + ".pb.go"
+	return toSnakeCase(b.GoName()) + ".pb.go"
 }
 
-func (b *block) Members() map[string]*pb.GoType {
-	return b.option.Members
+func (b *block) GoName() string {
+	if b._type == pb.E_Resource {
+		return fmt.Sprintf("%sResource", *b.option.Name)
+	}
+	return fmt.Sprintf("%sDataSource", *b.option.Name)
+}
+
+func (b *block) HasServiceClient() bool {
+	return len(b.option.Client) > 0
 }
 
 func (b *block) Model() extension.Model {
 	return b.model
 }
 
-func (b *block) GoName() string {
-	return *b.option.Name
+func (b *block) ModelGoName() string {
+	return b.model.GoName()
 }
 
 func (b *block) Option() *pb.Block {
 	return b.option
 }
 
-func (b *block) TfName() string {
-	return toSnakeCase(b.GoName())
+func (b *block) ExecGoName() string {
+	return fmt.Sprintf("%sExec", b.GoName())
+}
+
+func (b *block) TerraformName() string {
+	return toSnakeCase(*b.option.Name)
 }
 
 func (b *block) Type() protoreflect.ExtensionType {

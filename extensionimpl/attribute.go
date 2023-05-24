@@ -15,6 +15,7 @@ var _ extension.Attribute = &attribute{}
 
 type attribute struct {
 	elementType string
+	field       *protogen.Field
 	option      *pb.Attribute
 	schema      *pb.GoIdentity
 	typeValue   extension.TypeValue
@@ -32,6 +33,7 @@ func NewAttribute(synth extension.Synthesizer, field *protogen.Field, explicit b
 	if a.option.Skip {
 		return nil, nil
 	}
+	a.field = field
 	if a.option.Name == nil {
 		a.option.Name = proto.String(field.GoName)
 	}
@@ -60,7 +62,7 @@ func (a *attribute) Computed() bool {
 }
 
 func (a *attribute) Deprecation() string {
-	return *a.option.Description
+	return *a.option.Deprecation
 }
 
 func (a *attribute) Description() string {
@@ -71,8 +73,8 @@ func (a *attribute) ElementType() string {
 	return a.elementType
 }
 
-func (a *attribute) GoName() string {
-	return *a.option.Name
+func (a *attribute) Field() *protogen.Field {
+	return a.field
 }
 
 func (a *attribute) MdDescription() string {
@@ -101,4 +103,15 @@ func (a *attribute) Sensitive() bool {
 
 func (a *attribute) TypeValue() extension.TypeValue {
 	return a.typeValue
+}
+
+func (a *attribute) HasNestedType() bool {
+	return a.typeValue.IsList() || a.typeValue.IsMap() || a.typeValue.IsNestedSingleObject()
+}
+
+func (a *attribute) NestedType() string {
+	if strings.HasPrefix(a.typeValue.NestedTypeValue(), "types.") && strings.HasSuffix(a.typeValue.NestedTypeValue(), "Type") {
+		return a.typeValue.NestedTypeValue()
+	}
+	return fmt.Sprintf("types.ObjectType{ AttrTypes: (%s).AttributeTypes() }", a.TypeValue().NestedTypeValue())
 }

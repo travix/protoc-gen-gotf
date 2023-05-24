@@ -21,4 +21,6 @@ type Synthesizer interface {
 	Resource(msg *protogen.Message) (Block, error)
 	Model(msg *protogen.Message, explicit bool) (Model, error)
 	Module() string
+	MessagePackageName(msg *protogen.Message) protogen.GoPackageName
+	MessageImportPath(msg *protogen.Message) protogen.GoImportPath
 }

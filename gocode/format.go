@@ -23,6 +23,10 @@ func (f srcFile) Path() string {
 }
 
 func (w *writer) Format(src []byte, path string) ([]byte, error) {
+	dst, err := format.Source(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to gofmt file %s: %w", path, err)
+	}
 	log.InitLogger()
 	cfg := config.Config{
 		BoolConfig: config.BoolConfig{
@@ -36,13 +40,9 @@ func (w *writer) Format(src []byte, path string) ([]byte, error) {
 		},
 		SectionSeparators: section.DefaultSectionSeparators(),
 	}
-	_, dst, err := gci.LoadFormatGoFile(srcFile{path, src}, cfg)
+	_, dst, err = gci.LoadFormatGoFile(srcFile{path, dst}, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format imports in file %s: %w", path, err)
-	}
-	dst, err = format.Source(dst)
-	if err != nil {
-		return nil, fmt.Errorf("failed to gofmt file %s: %w", path, err)
 	}
 	return dst, nil
 }

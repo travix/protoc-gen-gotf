@@ -13,9 +13,7 @@ func (w *writer) data(entries ...entry) map[string]any {
 		"ProviderImportPath":  w.providerImportPath,
 		"PbPackageName":       w.pbPackageName,
 		"ProviderPackageName": w.providerPackageName,
-		"Version":             "local",
-		"ProtocVersion":       "local",
-		"Location":            "local",
+		"Version":             w.version,
 	}
 	for _, e := range entries {
 		data[e.string] = e.any
@@ -23,38 +21,33 @@ func (w *writer) data(entries ...entry) map[string]any {
 	return data
 }
 
-func (w *writer) blockData(block extension.Block, defaultImports []_import) map[string]any {
-	hasServiceClient := false
-	imports := append([]_import{}, defaultImports...)
-	for _, m := range block.Members() {
-		imports = append(imports, w.importForGoType(m)...)
-		if w.isServiceClient(m) {
-			hasServiceClient = true
-		}
+func (w *writer) blockData(block extension.Block, importsArg []_import) map[string]any {
+	imports := make([]_import, len(importsArg))
+	copy(imports, importsArg)
+	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
+	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
+	if block.HasServiceClient() {
+		// nolint:makezero
+		imports = append(imports, _import{path: "google.golang.org/grpc"}, _import{path: "fmt"})
 	}
-	importStrings := w.importStrings(imports)
 	return w.data(
 		entry{"Block", block},
-		entry{"Imports", importStrings},
-		entry{"HasServiceClient", hasServiceClient})
+		entry{"Imports", w.importStrings(imports)})
 }
 
-func (w *writer) providerData(provider extension.Provider, hasServiceClient bool, defaultImports []_import) map[string]any {
-	imports := append([]_import{}, defaultImports...)
-	for _, m := range provider.Members() {
-		imports = append(imports, w.importForGoType(m)...)
-	}
-	importStrings := w.importStrings(imports)
+func (w *writer) providerData(provider extension.Provider, hasServiceClient bool, importsArg []_import) map[string]any {
+	imports := make([]_import, len(importsArg))
+	copy(imports, importsArg)
+	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
+	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
 	return w.data(
 		entry{"Provider", provider},
-		entry{"Imports", importStrings},
+		entry{"Imports", w.importStrings(imports)},
 		entry{"HasServiceClient", hasServiceClient})
 }
 
 func (w *writer) dependencyData(models []extension.Model, defaultImports []_import) map[string]any {
-	imports := append([]_import{}, defaultImports...)
-	importStrings := w.importStrings(imports)
 	return w.data(
 		entry{"Models", models},
-		entry{"Imports", importStrings})
+		entry{"Imports", w.importStrings(defaultImports)})
 }

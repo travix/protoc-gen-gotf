@@ -10,13 +10,16 @@ import (
 //
 // //go:gocode mockery --name Block --output ../../mocks.
 type Block interface {
+	Clients() []string
 	Description() string
+	ExecGoName() string
 	Filename() string
-	Members() map[string]*pb.GoType
-	Model() Model
 	GoName() string
+	HasServiceClient() bool
+	Model() Model
+	ModelGoName() string
 	Option() *pb.Block
-	TfName() string
+	TerraformName() string
 	Type() protoreflect.ExtensionType
 	TypeName() string
 }

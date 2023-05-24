@@ -8,17 +8,22 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/pluginpb"
 
 	"github.com/travix/protoc-gen-gotf/extension"
 	"github.com/travix/protoc-gen-gotf/extensionimpl"
 	"github.com/travix/protoc-gen-gotf/gocode"
 	"github.com/travix/protoc-gen-gotf/pb"
+	"github.com/travix/protoc-gen-gotf/structtag"
 )
 
 const Name = "protoc-gen-gotf"
 
 // opt is the plugin options. set only once in plugin run.
 var opt = &options{logLevel: zerolog.WarnLevel}
+
+// version in format "{version} {buildDate} {commit} {commitDate}", populated at compile time
+var version = "local 1970-01-01T00:00:00Z (e83c516 1970-01-01T00:00:00Z)"
 
 // options that can be passed to plugin.
 type options struct {
@@ -34,6 +39,7 @@ type Plugin interface {
 type plugin struct {
 	*protogen.Plugin
 	gocode.Writer
+	structtag.Tagger
 }
 
 // Run creates new gotf plugin and runs it.
@@ -47,7 +53,12 @@ func Run(gen *protogen.Plugin) error {
 		return err
 	}
 	_, err = p.Run(in)
+	gen.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 	return err
+}
+
+func Version() string {
+	return version
 }
 
 // SetOptions sets the plugin options. Parameters passed should be a comma-separated list example:
@@ -109,19 +120,29 @@ func (p *plugin) Run(in Input) ([]*protogen.GeneratedFile, error) {
 	log.Debug().Msg("generating files")
 	provider := in.Provider()
 	importPath := provider.ImportPath()
-	p.Writer = gocode.NewWriter(provider.PbImportPath(), importPath, provider.PbPackageName(), provider.PackageName())
-	var files []*protogen.GeneratedFile
 	var err error
+	p.Writer, err = gocode.NewWriter(provider.PbImportPath(), importPath, provider.PbPackageName(), provider.PackageName(), strings.Split(version, " ")[0])
+	if err != nil {
+		return nil, err
+	}
+	p.Tagger = structtag.NewTagger("tfsdk")
+	var files []*protogen.GeneratedFile
 	generatedFiles := make([]*protogen.GeneratedFile, 0)
 	if files, err = p.genBlocks(in, importPath); err != nil {
 		return nil, err
 	}
 	generatedFiles = append(generatedFiles, files...)
-	if files, err = p.genDependencies(in, importPath); err != nil {
+	if files, err = p.genDependencies(in, provider.PbImportPath()); err != nil {
 		return nil, err
 	}
 	generatedFiles = append(generatedFiles, files...)
-	hasServiceClient := p.HasServiceClient(in.AllBlocks())
+	hasServiceClient := false
+	for _, block := range in.AllBlocks() {
+		if block.HasServiceClient() {
+			hasServiceClient = true
+			break
+		}
+	}
 	if files, err = p.genProvider(importPath, provider, hasServiceClient); err != nil {
 		return nil, err
 	}
@@ -129,7 +150,7 @@ func (p *plugin) Run(in Input) ([]*protogen.GeneratedFile, error) {
 }
 
 func (p *plugin) genProvider(importPath protogen.GoImportPath, provider extension.Provider, hasServiceClient bool) ([]*protogen.GeneratedFile, error) {
-	filename := filepath.Join(string(importPath), "provider.go")
+	filename := filepath.Join(string(importPath), provider.Filename())
 	file := p.NewGeneratedFile(filename, importPath)
 	if err := p.WriteProvider(filename, file, provider, hasServiceClient); err != nil {
 		return nil, err
@@ -164,7 +185,7 @@ func (p *plugin) genDependencies(in Input, importPath protogen.GoImportPath) ([]
 		var generatedFilename string
 		for _, f := range p.Files {
 			if f.Desc.FullName() == fullName {
-				generatedFilename = f.GeneratedFilenamePrefix + ".tf.pb.go"
+				generatedFilename = f.GeneratedFilenamePrefix + "_tf.pb.go"
 				break
 			}
 		}
@@ -173,6 +194,11 @@ func (p *plugin) genDependencies(in Input, importPath protogen.GoImportPath) ([]
 		}
 		file := p.NewGeneratedFile(generatedFilename, importPath)
 		if err := p.WriteDependency(generatedFilename, file, models...); err != nil {
+			return nil, err
+		}
+		protoFilePath := strings.ReplaceAll(generatedFilename, opt.module+"/", "")
+		protoFilePath = strings.ReplaceAll(protoFilePath, "_tf.pb.go", ".pb.go")
+		if err := p.Tag(protoFilePath, models); err != nil {
 			return nil, err
 		}
 		generatedFiles = append(generatedFiles, file)

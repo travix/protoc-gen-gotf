@@ -1,6 +1,7 @@
 package extensionimpl
 
 import (
+	"path"
 	"regexp"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
 
 	"github.com/travix/protoc-gen-gotf/pb"
 )
@@ -60,4 +62,22 @@ func deferToComment(direct *string, comments protogen.CommentSet) *string {
 	str += string(comments.Trailing)
 	str = strings.TrimSpace(str)
 	return &str
+}
+
+func getPkgName(options protoreflect.ProtoMessage) string {
+	fileOpt, _ := options.(*descriptorpb.FileOptions)
+	goPkg := fileOpt.GetGoPackage()
+	if i := strings.Index(goPkg, ";"); i >= 0 {
+		return goPkg[i+1:]
+	}
+	return GoSanitized(path.Base(goPkg))
+}
+
+func getImportPath(options protoreflect.ProtoMessage) string {
+	fileOpt, _ := options.(*descriptorpb.FileOptions)
+	goPkg := fileOpt.GetGoPackage()
+	if i := strings.Index(goPkg, ";"); i >= 0 {
+		return goPkg[:i]
+	}
+	return goPkg
 }

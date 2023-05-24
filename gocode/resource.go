@@ -18,14 +18,10 @@ var defaultResourceImports = []_import{
 }
 
 func (w *writer) WriteResource(filename string, file *protogen.GeneratedFile, block extension.Block) error {
-	imports := make([]_import, len(defaultResourceImports))
-	copy(imports, defaultResourceImports)
-	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
-	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
-	data := w.blockData(block, imports)
+	data := w.blockData(block, defaultResourceImports)
 	code := &bytes.Buffer{}
-	if err := w.resourceTmpl.Execute(code, data); err != nil {
-		return fmt.Errorf("failed to execute %s template: %w", w.resourceTmpl.Name(), err)
+	if err := w.templates.ExecuteTemplate(code, resourceTemplate, data); err != nil {
+		return fmt.Errorf("failed to execute %s template: %w", resourceTemplate, err)
 	}
 	return w.formatAndWrite(filename, file, code.Bytes())
 }

@@ -32,53 +32,27 @@ func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.
 	if p.option.Name == "" {
 		p.option.Name = msg.GoIdent.GoName
 	}
-	if p.option.PbPackage == "" {
-		return nil, fmt.Errorf("error gotf.provider.package option is required in %s#%s", msg.Location.SourceFile, msg.Location.Path)
+	p.option.Description = *deferToComment(&p.option.Description, msg.Comments)
+	p.pbPackageName = synth.MessagePackageName(msg)
+	p.pbImportPath = synth.MessageImportPath(msg)
+	if !strings.HasPrefix(string(p.pbImportPath), p.module) {
+		p.pbImportPath = protogen.GoImportPath(filepath.Join(p.module, string(p.pbImportPath)))
 	}
-	p.setPb(synth, option)
-	p.setPkgAndPath()
+	p.module = synth.Module()
+	if p.option.ProviderPackage == "" {
+		p.option.ProviderPackage = filepath.Join(p.module, "providerpb")
+	}
+	p.packageName = protogen.GoPackageName(filepath.Base(p.option.ProviderPackage))
+	p.importPath = protogen.GoImportPath(p.option.ProviderPackage)
+	if !strings.HasPrefix(string(p.importPath), p.module) {
+		p.importPath = protogen.GoImportPath(filepath.Join(p.module, string(p.importPath)))
+	}
 	var err error
 	p.model, err = synth.Model(msg, false)
 	if err != nil {
 		return nil, err
 	}
 	return p, nil
-}
-
-func (p *provider) setPkgAndPath() {
-	seg := strings.Split(p.option.ProviderPackage, ";")
-	p.packageName = protogen.GoPackageName(filepath.Base(seg[len(seg)-1]))
-	p.importPath = protogen.GoImportPath(seg[0])
-	if !strings.HasPrefix(string(p.importPath), p.module) {
-		p.importPath = protogen.GoImportPath(filepath.Join(p.module, string(p.importPath)))
-	}
-}
-
-func (p *provider) setPb(synth extension.Synthesizer, option *pb.Provider) {
-	seg := strings.Split(p.option.PbPackage, ";")
-	pkg := filepath.Base(seg[len(seg)-1])
-	p.pbPackageName = protogen.GoPackageName(pkg)
-	seg = strings.Split(p.option.PbPackage, ";")
-	p.pbImportPath = protogen.GoImportPath(seg[0])
-	p.module = ""
-	if p.option.ProviderPackage == "" {
-		p.option.ProviderPackage = "providerpb"
-		p.module = synth.Module()
-	}
-	if option.Module != nil {
-		p.module = *option.Module
-	}
-	if !strings.HasPrefix(string(p.pbImportPath), p.module) {
-		p.pbImportPath = protogen.GoImportPath(filepath.Join(p.module, string(p.pbImportPath)))
-	}
-}
-
-func (p *provider) Members() map[string]*pb.GoType {
-	return p.option.Members
-}
-
-func (p *provider) Name() string {
-	return p.option.Name
 }
 
 func (p *provider) GoName() string {
@@ -93,12 +67,20 @@ func (p *provider) Filename() string {
 	return "provider.go"
 }
 
+func (p *provider) ImportPath() protogen.GoImportPath {
+	return p.importPath
+}
+
 func (p *provider) Model() extension.Model {
 	return p.model
 }
 
-func (p *provider) TfName() string {
-	return toSnakeCase(p.GoName())
+func (p *provider) ModelGoName() string {
+	return p.model.GoName()
+}
+
+func (p *provider) Name() string {
+	return p.option.Name
 }
 
 func (p *provider) Option() *pb.Provider {
@@ -109,14 +91,18 @@ func (p *provider) PackageName() protogen.GoPackageName {
 	return p.packageName
 }
 
-func (p *provider) ImportPath() protogen.GoImportPath {
-	return p.importPath
-}
-
 func (p *provider) PbImportPath() protogen.GoImportPath {
 	return p.pbImportPath
 }
 
 func (p *provider) PbPackageName() protogen.GoPackageName {
 	return p.pbPackageName
+}
+
+func (p *provider) ExecGoName() string {
+	return fmt.Sprintf("%sExec", p.GoName())
+}
+
+func (p *provider) TerraformName() string {
+	return toSnakeCase(p.option.Name)
 }

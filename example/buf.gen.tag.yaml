@@ -1,8 +1,0 @@
-version: v1
-plugins:
-  - plugin: gotag
-    out: .
-    strategy: all
-    opt:
-    - module=github.com/travix/protoc-gen-gotf/example
-    - "auto=tfsdk:."

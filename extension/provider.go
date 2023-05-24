@@ -11,14 +11,15 @@ import (
 // //go:gocode mockery --name Provider --output ../../mocks.
 type Provider interface {
 	Description() string
+	ExecGoName() string
 	Filename() string
-	ImportPath() protogen.GoImportPath // old
-	Members() map[string]*pb.GoType    // old
+	GoName() string
+	ImportPath() protogen.GoImportPath
 	Model() Model
-	GoName() string                        // old
-	Option() *pb.Provider                  // old
-	PackageName() protogen.GoPackageName   // old
-	PbImportPath() protogen.GoImportPath   // old
-	PbPackageName() protogen.GoPackageName // old
-	TfName() string
+	ModelGoName() string
+	Option() *pb.Provider
+	PackageName() protogen.GoPackageName
+	PbImportPath() protogen.GoImportPath
+	PbPackageName() protogen.GoPackageName
+	TerraformName() string
 }

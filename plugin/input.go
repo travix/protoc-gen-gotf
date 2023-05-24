@@ -85,6 +85,10 @@ func (in *input) addBlocks(file *protogen.File, synthesizer extension.Synthesize
 		if found, err := in.setProvider(message, synthesizer); err != nil {
 			return err
 		} else if found {
+			err = in.addDependencies(synthesizer, in.Provider().Model())
+			if err != nil {
+				return err
+			}
 			continue
 		}
 		for _, blockType := range []*protoimpl.ExtensionInfo{pb.E_Resource, pb.E_Datasource} {

@@ -59,9 +59,13 @@ func TestNewInput(t *testing.T) {
 	mockedBlock2.On("TypeName").Return("datasource")
 	mockedBlock2.On("Type").Return(pb.E_Datasource)
 	mockedSynthesizer := &extension.MockedSynthesizer{}
+	mockedProvider := &extension.MockedProvider{}
+	mockedModel3 := &extension.MockedModel{}
+	mockedModel3.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "UserData"}, Desc: mockedMsgDesc2})
+	mockedProvider.On("Model").Return(mockedModel3)
 	mockedSynthesizer.On("Provider", mock.Anything).Return(func(msg *protogen.Message) (extension.Provider, error) {
 		if string(msg.Desc.Name()) == "Valid01" {
-			return &extension.MockedProvider{}, nil
+			return mockedProvider, nil
 		}
 		return nil, nil
 	})

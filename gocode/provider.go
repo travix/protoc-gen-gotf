@@ -20,14 +20,10 @@ var defaultProviderImports = []_import{
 }
 
 func (w *writer) WriteProvider(filename string, file *protogen.GeneratedFile, provider extension.Provider, hasServiceClient bool) error {
-	imports := make([]_import, len(defaultProviderImports))
-	copy(imports, defaultProviderImports)
-	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
-	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
-	data := w.providerData(provider, hasServiceClient, imports)
+	data := w.providerData(provider, hasServiceClient, defaultProviderImports)
 	code := &bytes.Buffer{}
-	if err := w.providerTmpl.Execute(code, data); err != nil {
-		return fmt.Errorf("failed to execute %s template: %w", w.providerTmpl.Name(), err)
+	if err := w.templates.ExecuteTemplate(code, providerTemplate, data); err != nil {
+		return fmt.Errorf("failed to execute %s template: %w", providerTemplate, err)
 	}
 	return w.formatAndWrite(filename, file, code.Bytes())
 }

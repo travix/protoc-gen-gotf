@@ -15,6 +15,14 @@ type synthesizer struct {
 	module string
 }
 
+func (s synthesizer) MessagePackageName(msg *protogen.Message) protogen.GoPackageName {
+	return protogen.GoPackageName(getPkgName(msg.Desc.ParentFile().Options()))
+}
+
+func (s synthesizer) MessageImportPath(msg *protogen.Message) protogen.GoImportPath {
+	return protogen.GoImportPath(getImportPath(msg.Desc.ParentFile().Options()))
+}
+
 func (s synthesizer) Module() string {
 	return s.module
 }

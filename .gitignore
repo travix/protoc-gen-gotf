@@ -25,3 +25,5 @@ go.work
 *.pb.bin
 
 coverage.out
+
+dist/

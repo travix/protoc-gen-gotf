@@ -40,12 +40,8 @@ func TestNewBlock(t *testing.T) {
 			},
 		}
 		mocked.On("MessageOption", mock.Anything, pb.E_Resource).Once().Return(&pb.Block{
-			Members: map[string]*pb.GoType{
-				"m1": {
-					Type: &pb.GoType_Builtin{
-						Builtin: pb.Builtin_int,
-					},
-				},
+			Client: []string{
+				"client1",
 			},
 		}, nil)
 		mocked.On("Model", arg, false).Once().Return(&extension.MockedModel{}, nil)
@@ -56,18 +52,17 @@ func TestNewBlock(t *testing.T) {
 		if !assert.NotNil(t, got) {
 			return
 		}
-		assert.Equal(t, "test", got.GoName())
+		assert.Equal(t, "testResource", got.GoName())
 		assert.NotNil(t, got.Model())
-		assert.Len(t, got.Members(), 1, "len(Members()) = 1")
+		assert.Len(t, got.Clients(), 1, "len(Clients()) = 1")
 		mocked.AssertExpectations(t)
 	})
 }
 
 func Test_block(t *testing.T) {
 	b := &block{
-		members: nil,
-		model:   &extension.MockedModel{},
-		option:  &pb.Block{},
+		model:  &extension.MockedModel{},
+		option: &pb.Block{},
 	}
 	assert.NotNil(t, b.Model())
 	assert.Equal(t, &pb.Block{}, b.Option())
@@ -76,5 +71,5 @@ func Test_block(t *testing.T) {
 			GoName: "test",
 		},
 	})
-	assert.Equal(t, "test", b.GoName())
+	assert.Equal(t, "testDataSource", b.GoName())
 }

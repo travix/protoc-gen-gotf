@@ -7,7 +7,7 @@ option go_package = ".;testpb";
 import "gotf.proto";
 
 message Valid01 {
-  option (provider) = {pb_package: ".;testpb"};
+  option (provider) = {};
 }
 
 message User {

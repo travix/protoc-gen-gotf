@@ -1,0 +1,96 @@
+{{template "header" .}}
+
+// Ensure *{{ .Block.GoName }} fully satisfy terraform framework interfaces.
+var _ datasource.DataSource = &{{ .Block.GoName }}{}
+
+type {{ .Block.ExecGoName }} interface {
+	dtsrc.Datasource[*{{ .Block.ModelGoName }}]
+{{- range $inde, $client := .Block.Clients }}
+	Set{{ $client }}({{ $.PbPackageName }}.{{ $client }})
+{{- end }}
+}
+
+type {{ .Block.GoName }} struct {
+	exec {{ .Block.ExecGoName }}
+}
+
+func New{{ .Block.GoName }}(exec {{ .Block.ExecGoName }}) func() datasource.DataSource {
+	if exec == nil {
+		panic("{{ .Block.ExecGoName }} is required")
+	}
+	return func() datasource.DataSource {
+		return &{{ .Block.GoName }}{exec: exec}
+	}
+}
+
+func (d *{{ .Block.GoName }}) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_{{ .Block.TerraformName }}"
+	if _exec, ok := d.exec.(dtsrc.CanMetadata); ok {
+		_exec.Metadata(ctx, req, resp)
+	}
+}
+
+func (d *{{ .Block.GoName }}) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: {{ .Block.Description | quote }},
+		Attributes: (&{{ .Block.ModelGoName }}{}).DatasourceSchema(),
+	}
+	if _exec, ok := d.exec.(dtsrc.CanSchema); ok {
+		_exec.Schema(ctx, req, resp)
+	}
+}
+
+func (d *{{ .Block.GoName }}) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+{{- if .Block.HasServiceClient }}
+	// Get the gRPC client connection from the ProviderData
+	if req.ProviderData != nil {
+		conn, ok := req.ProviderData.(grpc.ClientConnInterface)
+		if !ok {
+			resp.Diagnostics.AddError(
+				"Unexpected ProviderData Type",
+				fmt.Sprintf("Expected grpc.ClientConnInterface, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			)
+			return
+		}
+		// set the service clients
+		{{- range $index, $client := .Block.Clients }}
+		d.exec.Set{{ $client }}({{ $.PbPackageName }}.New{{ $client }}(conn))
+		{{- end }}
+	}
+{{- end }}
+	if _exec, ok := d.exec.(dtsrc.CanConfigure); ok {
+		_exec.Configure(ctx, req, resp)
+		return
+	}
+}
+
+func (d *{{ .Block.GoName }}) ConfigValidators(ctx context.Context) []datasource.ConfigValidator {
+	if _exec, ok := d.exec.(dtsrc.CanConfigValidators); ok {
+		return _exec.ConfigValidators(ctx)
+	}
+	tflog.Warn(ctx, "ConfigValidators method not implemented. Make sure argument to New{{ .Block.GoName }}() implements dtsrc.CanConfigValidators interface")
+	return nil
+}
+
+func (d *{{ .Block.GoName }}) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {
+	if _exec, ok := d.exec.(dtsrc.CanValidateConfig); ok {
+		_exec.ValidateConfig(ctx, req, resp)
+		return
+	}
+	tflog.Warn(ctx, "ValidateConfig method not implemented. Make sure argument to New{{ .Block.GoName }}() implements dtsrc.CanValidateConfig interface")
+}
+
+func (d *{{ .Block.GoName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data {{ .Block.ModelGoName }}
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	read, diagnostics := d.exec.Read(ctx, req, resp, &data)
+	if diagnostics.HasError() {
+		resp.Diagnostics.Append(diagnostics...)
+		return
+	}
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, read)...)
+}

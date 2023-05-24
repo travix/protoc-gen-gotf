@@ -1,0 +1,7 @@
+version: v1
+plugins:
+  - plugin: go
+    out: .
+    opt:
+    - module=github.com/travix/protoc-gen-gotf
+    - Mgotf.proto=github.com/travix/protoc-gen-gotf/pb;pb

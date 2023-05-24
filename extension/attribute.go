@@ -1,6 +1,8 @@
 package extension
 
 import (
+	"google.golang.org/protobuf/compiler/protogen"
+
 	"github.com/travix/protoc-gen-gotf/pb"
 )
 
@@ -9,7 +11,7 @@ type Attribute interface {
 	Deprecation() string
 	Description() string
 	ElementType() string
-	GoName() string
+	Field() *protogen.Field
 	MdDescription() string
 	Name() string
 	Optional() bool
@@ -17,5 +19,6 @@ type Attribute interface {
 	Schema() *pb.GoIdentity
 	Sensitive() bool
 	TypeValue() TypeValue
+	HasNestedType() bool
 	// TODO: support CustomType and Validators
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -13,6 +14,12 @@ import (
 
 //go:generate ./gen.sh
 func main() {
+	versionFlag := flag.Bool("version", false, "Print version and exit")
+	flag.Parse()
+	if *versionFlag {
+		fmt.Println(plugin.Version())
+		os.Exit(0)
+	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, FormatMessage: formatter, PartsExclude: []string{zerolog.TimestampFieldName}})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	protogen.Options{}.Run(plugin.Run)
