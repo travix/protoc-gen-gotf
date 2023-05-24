@@ -14,7 +14,7 @@ runs:
       uses: arduino/setup-protoc@v1
     - name: Generate
       shell: bash
-      run: go gocode ./...
+      run: go generate ./...
     - name: Download dependencies
       if: steps.setup-go.outputs.cache-hit != 'true'
       shell: bash
