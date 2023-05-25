@@ -16,6 +16,7 @@ runs:
         version=23.1
         curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${version}/protoc-${version}-linux-x86_64.zip
         unzip protoc-${version}-linux-x86_64.zip -d $HOME/.local
+        rm protoc-${version}-linux-x86_64.zip
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     - name: Generate
       shell: bash
