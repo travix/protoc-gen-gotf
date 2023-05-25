@@ -12,6 +12,8 @@ runs:
           go-version: ^1
     - name: Install Protoc
       uses: arduino/setup-protoc@v1
+      with:
+        version: 4.23.1
     - name: Generate
       shell: bash
       run: go generate ./...

@@ -19,7 +19,7 @@ require protoc-gen-debug github.com/lyft/protoc-gen-star/protoc-gen-debug@v0.6.2
 require mockery github.com/vektra/mockery/v2@v2.26.1
 require protoc
 
-echo "generating plugin.proto"
+echo "generating gotf.proto"
 protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-gotf \
   --go_opt=Mgotf.proto="github.com/travix/protoc-gen-gotf/pb;pb" \
   gotf.proto
