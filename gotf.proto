@@ -108,7 +108,7 @@ message Provider {
   // package where generated terraform go code should be placed
   //
   // If not set files will be placed in providerpb package.
-  string provider_package = 3;
+  string provider_package = 2;
   // description is used to set terraform provider's description.
-  string description = 4;
+  string description = 3;
 }

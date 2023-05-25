@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup job
+        uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
+      - name: Release CLI
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: bufbuild/buf-setup-action@v1.19.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          buf_user: ${{ var.buf_user }}
+          buf_api_token: ${{ secrets.buf_api_token }}
+      - name: Release Protobuf
+        run: buf push
