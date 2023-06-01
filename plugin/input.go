@@ -176,7 +176,7 @@ func (in *input) setProvider(message *protogen.Message, synthesizer extension.Sy
 	if err != nil {
 		return false, err
 	}
-	if in.provider == nil {
+	if in.provider == nil && provider != nil {
 		in.provider = provider
 		in.providerProtoFile = message.Desc.ParentFile().Path()
 		return true, nil

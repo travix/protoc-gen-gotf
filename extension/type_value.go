@@ -9,7 +9,6 @@ type TypeValue interface {
 	IsMap() bool
 	IsNestedSingleObject() bool
 	NestedTypeValue() string
-	// Message() *protogen.Message
 	TerraformNative() bool
 	Type() *pb.GoIdentity
 	Value() *pb.GoIdentity

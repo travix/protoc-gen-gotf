@@ -49,7 +49,7 @@ func TestNewAttribute(t *testing.T) {
 		mockedSynth := &extension.MockedSynthesizer{}
 		mockedSynth.On("FieldOption", mock.Anything).Once().Return(&pb.Attribute{}, nil)
 		mockedDesc := &MockedFieldDescriptor{}
-		mockedDesc.On("Kind").Twice().Return(protoreflect.StringKind)
+		mockedDesc.On("Kind").Times(3).Return(protoreflect.StringKind)
 		mockedDesc.On("IsList").Return(false)
 		mockedDesc.On("IsMap").Return(false)
 		field := &protogen.Field{GoName: "test", Desc: mockedDesc}
@@ -78,7 +78,7 @@ func TestNewAttribute(t *testing.T) {
 		mockedSynth := &extension.MockedSynthesizer{}
 		mockedSynth.On("FieldOption", mock.Anything).Once().Return(&pb.Attribute{}, nil)
 		mockedDesc := &MockedFieldDescriptor{}
-		mockedDesc.On("Kind").Twice().Return(protoreflect.StringKind)
+		mockedDesc.On("Kind").Times(3).Return(protoreflect.StringKind)
 		mockedDesc.On("IsList").Return(false)
 		mockedDesc.On("IsMap").Return(false)
 		field := &protogen.Field{GoName: "test", Desc: mockedDesc}

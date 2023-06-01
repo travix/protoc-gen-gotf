@@ -81,12 +81,12 @@ func (d *{{ .Block.GoName }}) ValidateConfig(ctx context.Context, req datasource
 }
 
 func (d *{{ .Block.GoName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data {{ .Block.ModelGoName }}
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
+	data, diagnostics := gotf.GetModel[{{ .Block.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
+	if diagnostics.HasError() {
+		resp.Diagnostics.Append(diagnostics...)
 		return
 	}
-	read, diagnostics := d.exec.Read(ctx, req, resp, &data)
+	read, diagnostics := d.exec.Read(ctx, req, resp, data)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return

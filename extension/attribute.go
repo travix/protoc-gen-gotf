@@ -8,17 +8,20 @@ import (
 
 type Attribute interface {
 	Computed() bool
+	DefaultValue() string
 	Deprecation() string
 	Description() string
 	ElementType() string
 	Field() *protogen.Field
+	HasNestedType() bool
+	IsPointer() bool
 	MdDescription() string
 	Name() string
+	NeedsDefaultValue() bool
 	Optional() bool
 	Required() bool
 	Schema() *pb.GoIdentity
 	Sensitive() bool
 	TypeValue() TypeValue
-	HasNestedType() bool
 	// TODO: support CustomType and Validators
 }

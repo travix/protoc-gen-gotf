@@ -14,6 +14,7 @@ var defaultResourceImports = []_import{
 	{path: "github.com/hashicorp/terraform-plugin-framework/resource"},
 	{path: "github.com/hashicorp/terraform-plugin-framework/resource/schema"},
 	{path: "github.com/hashicorp/terraform-plugin-log/tflog"},
+	{path: "github.com/travix/gotf"},
 	{path: "github.com/travix/gotf/rsrc"},
 }
 

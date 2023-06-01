@@ -243,8 +243,16 @@ type Attribute struct {
 	Skip bool `protobuf:"varint,1,opt,name=skip,proto3" json:"skip,omitempty"`
 	// attribute must_be computed, optional, required or optional and computed.
 	//
-	// If attribute is optional make sure `optional` is set to true on fields as terraform
-	// will return nil value for this proto field.
+	// If attribute is optional and `optional` keyword is not set on the fields gotf
+	// will try to generate default for field such as
+	//
+	//	string -> ""
+	//	int32 -> 0
+	//	int64 -> 0
+	//	float -> 0.0
+	//	bool -> false
+	//
+	// If you want to receive nil value set `optional` keyword on field.
 	MustBe MustBe `protobuf:"varint,2,opt,name=must_be,json=mustBe,proto3,enum=gotf.MustBe" json:"must_be,omitempty"`
 	// name of terraform attribute, check [attribute-names] documentation for more details.
 	// defaults to snake_case of message field name.

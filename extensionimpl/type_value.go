@@ -167,6 +167,23 @@ func inferTypeValue(field *protogen.Field) (extension.TypeValue, error) {
 	return tv, nil
 }
 
+func defaultValue(field *protogen.Field) (string, error) {
+	switch field.Desc.Kind() {
+	case protoreflect.BoolKind:
+		return "tftypes.NewValue(tftypes.Bool, false)", nil
+	case protoreflect.DoubleKind, protoreflect.FloatKind:
+		return `tftypes.NewValue(tftypes.Number, 0.0)`, nil
+	case protoreflect.Int32Kind, protoreflect.Int64Kind:
+		return `tftypes.NewValue(tftypes.Number, 0)`, nil
+	case protoreflect.MessageKind:
+		return fmt.Sprintf("tftypes.NewValue((&%[1]s{}).TerraformType(ctx), %[1]s{})", field.Message.GoIdent.GoName), nil
+	case protoreflect.StringKind:
+		return `tftypes.NewValue(tftypes.String, "")`, nil
+	default:
+		return "", fmt.Errorf("error at %s#%s: %w", field.Location.SourceFile, field.Location.Path, ErrUnsupportedKind)
+	}
+}
+
 func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 	return &typeValue{
 		_type: &pb.GoIdentity{
@@ -174,7 +191,6 @@ func newTypeValue(message *protogen.Message, isList, isMap bool) *typeValue {
 			ImportPath: string(message.GoIdent.GoImportPath),
 		},
 		value: &pb.GoIdentity{
-			// TODO: push implementation of github.com/hashicorp/terraform-plugin-framework/types/basetypes.ObjectValuable to pb
 			Name:       message.GoIdent.GoName,
 			ImportPath: string(message.GoIdent.GoImportPath),
 		},

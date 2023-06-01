@@ -59,9 +59,12 @@ func (p *{{ .Provider.GoName }}Provider) Configure(ctx context.Context, req prov
 		return
 	}
 {{- if .HasServiceClient }}
-	var data {{ .Provider.ModelGoName }}
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	conn, diagnostics := p.exec.ConfigureGrpc(ctx, &data)
+	data, diagnostics := gotf.GetModel[{{ .Provider.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
+	if diagnostics.HasError() {
+		resp.Diagnostics.Append(diagnostics...)
+		return
+	}
+	conn, diagnostics := p.exec.ConfigureGrpc(ctx, data)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return

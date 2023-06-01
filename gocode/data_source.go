@@ -14,6 +14,7 @@ var defaultDatasourceImports = []_import{
 	{path: "github.com/hashicorp/terraform-plugin-framework/datasource"},
 	{path: "github.com/hashicorp/terraform-plugin-framework/datasource/schema"},
 	{path: "github.com/hashicorp/terraform-plugin-log/tflog"},
+	{path: "github.com/travix/gotf"},
 	{path: "github.com/travix/gotf/dtsrc"},
 }
 
