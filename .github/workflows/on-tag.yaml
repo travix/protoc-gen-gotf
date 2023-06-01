@@ -18,7 +18,7 @@ jobs:
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: bufbuild/buf-setup-action@v1.19.0
+      - uses: bufbuild/buf-setup-action@v1.20.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           buf_user: ${{ vars.buf_user }}
