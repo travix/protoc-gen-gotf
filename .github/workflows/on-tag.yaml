@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Setup job
+      - name: Setup repository
         uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
         with:
           buf_api_token: ${{ secrets.buf_api_token }}

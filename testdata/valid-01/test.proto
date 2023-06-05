@@ -16,7 +16,6 @@ message User {
 }
 
 message UserData {
-  option map_entry = true;
   option (datasource) = { name: "User", explicit_fields: true };
   string email = 1 [(attribute) = {}]; // user email address
   string FirstName = 2 [(attribute) = {}];

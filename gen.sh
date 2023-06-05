@@ -17,7 +17,7 @@ require() {
 require protoc-gen-go google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
 require protoc-gen-debug github.com/lyft/protoc-gen-star/protoc-gen-debug@v0.6.2
 require mockery github.com/vektra/mockery/v2@v2.26.1
-#require protoc
+require protoc
 
 echo "generating gotf.proto"
 #protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-gotf \
