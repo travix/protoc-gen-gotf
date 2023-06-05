@@ -9,10 +9,12 @@ type entry struct {
 
 func (w *writer) data(entries ...entry) map[string]any {
 	data := map[string]any{
-		"PbImportPath":        w.pbImportPath,
-		"ProviderImportPath":  w.providerImportPath,
-		"PbPackageName":       w.pbPackageName,
-		"ProviderPackageName": w.providerPackageName,
+		"ExecImportPath":      w.ExecImportPath,
+		"ExecPackageName":     w.ExecPackageName,
+		"PbImportPath":        w.PbImportPath,
+		"PbPackageName":       w.PbPackageName,
+		"ProviderImportPath":  w.ProviderImportPath,
+		"ProviderPackageName": w.ProviderPackageName,
 		"Version":             w.version,
 	}
 	for _, e := range entries {
@@ -25,7 +27,7 @@ func (w *writer) blockData(block extension.Block, importsArg []_import) map[stri
 	imports := make([]_import, len(importsArg))
 	copy(imports, importsArg)
 	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
-	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
+	imports = append(imports, _import{path: string(w.PbImportPath), string: string(w.PbPackageName)})
 	if block.HasServiceClient() {
 		// nolint:makezero
 		imports = append(imports, _import{path: "google.golang.org/grpc"}, _import{path: "fmt"})
@@ -35,11 +37,24 @@ func (w *writer) blockData(block extension.Block, importsArg []_import) map[stri
 		entry{"Imports", w.importStrings(imports)})
 }
 
+func (w *writer) execData(block extension.Block, importsArg []_import) map[string]any {
+	imports := make([]_import, len(importsArg))
+	copy(imports, importsArg)
+	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
+	imports = append(imports,
+		_import{path: string(w.PbImportPath), string: string(w.PbPackageName)},
+		_import{path: string(w.ProviderImportPath), string: string(w.ProviderPackageName)},
+	)
+	return w.data(
+		entry{"Block", block},
+		entry{"Imports", w.importStrings(imports)})
+}
+
 func (w *writer) providerData(provider extension.Provider, hasServiceClient bool, importsArg []_import) map[string]any {
 	imports := make([]_import, len(importsArg))
 	copy(imports, importsArg)
 	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
-	imports = append(imports, _import{path: string(w.pbImportPath), string: string(w.pbPackageName)})
+	imports = append(imports, _import{path: string(w.PbImportPath), string: string(w.PbPackageName)})
 	return w.data(
 		entry{"Provider", provider},
 		entry{"Imports", w.importStrings(imports)},

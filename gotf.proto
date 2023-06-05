@@ -118,4 +118,9 @@ message Provider {
   string provider_package = 2;
   // description is used to set terraform provider's description.
   string description = 3;
+  // exec_package use generate go scaffold for executors.
+  // if this option is set, gotf will generate scaffold for block executors.
+  // if the file already exists, it will be skipped.
+  // it should not be same as provider_package.
+  optional string exec_package = 4;
 }

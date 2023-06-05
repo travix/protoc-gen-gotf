@@ -46,8 +46,8 @@ func TestNewInput(t *testing.T) {
 	mockedMsgDesc2.On("ParentFile").Return(mockedFileDesc2)
 	mockedModel1 := &extension.MockedModel{}
 	mockedModel2 := &extension.MockedModel{}
-	mockedModel1.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "User"}, Desc: mockedMsgDesc1})
-	mockedModel2.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "UserData"}, Desc: mockedMsgDesc2})
+	mockedModel1.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "User"}, Desc: mockedMsgDesc1, Location: protogen.Location{SourceFile: "test.proto"}})
+	mockedModel2.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "UserData"}, Desc: mockedMsgDesc2, Location: protogen.Location{SourceFile: "test.proto"}})
 	mockedBlock1 := &extension.MockedBlock{}
 	mockedBlock2 := &extension.MockedBlock{}
 	mockedBlock1.On("Model").Return(mockedModel1)
@@ -61,7 +61,7 @@ func TestNewInput(t *testing.T) {
 	mockedSynthesizer := &extension.MockedSynthesizer{}
 	mockedProvider := &extension.MockedProvider{}
 	mockedModel3 := &extension.MockedModel{}
-	mockedModel3.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "UserData"}, Desc: mockedMsgDesc2})
+	mockedModel3.On("Message").Return(&protogen.Message{GoIdent: protogen.GoIdent{GoName: "Valid01"}, Desc: mockedMsgDesc2, Location: protogen.Location{SourceFile: "test.proto"}})
 	mockedProvider.On("Model").Return(mockedModel3)
 	mockedSynthesizer.On("Provider", mock.Anything).Return(func(msg *protogen.Message) (extension.Provider, error) {
 		if string(msg.Desc.Name()) == "Valid01" {
@@ -89,7 +89,8 @@ func TestNewInput(t *testing.T) {
 	assert.NotNil(t, in.Provider())
 	assert.Len(t, in.Resources(), 1, "should have 1 resource")
 	assert.Len(t, in.Datasources(), 1, "should have 1 datasource")
-	assert.Len(t, in.Dependencies(), 2, "should have 2 dependencies")
+	assert.Len(t, in.Dependencies(), 1, "should have 1 proto file")
+	assert.Len(t, in.Dependencies()["test.proto"], 3, "should have 2 proto file")
 	mockedSynthesizer.AssertExpectations(t)
 	mockedBlock1.AssertExpectations(t)
 	mockedBlock2.AssertExpectations(t)

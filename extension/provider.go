@@ -14,12 +14,18 @@ type Provider interface {
 	ExecGoName() string
 	Filename() string
 	GoName() string
-	ImportPath() protogen.GoImportPath
 	Model() Model
 	ModelGoName() string
 	Option() *pb.Provider
-	PackageName() protogen.GoPackageName
-	PbImportPath() protogen.GoImportPath
-	PbPackageName() protogen.GoPackageName
+	PackageData() PackageData
 	TerraformName() string
+}
+
+type PackageData struct {
+	ExecImportPath      protogen.GoImportPath
+	ExecPackageName     protogen.GoPackageName
+	PbImportPath        protogen.GoImportPath
+	PbPackageName       protogen.GoPackageName
+	ProviderImportPath  protogen.GoImportPath
+	ProviderPackageName protogen.GoPackageName
 }

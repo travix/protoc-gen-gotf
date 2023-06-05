@@ -47,6 +47,10 @@ func (b *block) Filename() string {
 	return toSnakeCase(b.GoName()) + ".pb.go"
 }
 
+func (b *block) ExecFilename() string {
+	return toSnakeCase(b.GoName()) + "_exec.go"
+}
+
 func (b *block) GoName() string {
 	if b._type == pb.E_Resource {
 		return fmt.Sprintf("%sResource", *b.option.Name)
@@ -56,6 +60,14 @@ func (b *block) GoName() string {
 
 func (b *block) HasServiceClient() bool {
 	return len(b.option.Client) > 0
+}
+
+func (b *block) IsResource() bool {
+	return b._type == pb.E_Resource
+}
+
+func (b *block) IsDataSource() bool {
+	return b._type == pb.E_Datasource
 }
 
 func (b *block) Model() extension.Model {

@@ -8,7 +8,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/text v0.9.0
-	golang.org/x/tools v0.9.2
+	golang.org/x/tools v0.9.3
 	google.golang.org/protobuf v1.30.0
 )
 

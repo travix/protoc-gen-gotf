@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -62,19 +63,10 @@ func Version() string {
 }
 
 // SetOptions sets the plugin options. Parameters passed should be a comma-separated list example:
-//
-//	prefix=tf_
-//
-// or
-//
-//	prefix=tf_,suffix=.pb.go
-//
 // Available options:
 //
 //	log_level= for plugin, available values trace, debug, info, warn, error, fatal, panic, disable. Default is warn.
 //	module= module name of go tf code being generated
-//	prefix= prefix for go tf files
-//	suffix= suffix for go tf files
 func SetOptions(params string) {
 	for _, param := range strings.Split(params, ",") {
 		var value string
@@ -119,20 +111,21 @@ func (p *plugin) Run(in Input) ([]*protogen.GeneratedFile, error) {
 	}
 	log.Debug().Msg("generating files")
 	provider := in.Provider()
-	importPath := provider.ImportPath()
+	packageData := provider.PackageData()
 	var err error
-	p.Writer, err = gocode.NewWriter(provider.PbImportPath(), importPath, provider.PbPackageName(), provider.PackageName(), strings.Split(version, " ")[0])
+	// Available options:
+	p.Writer, err = gocode.NewWriter(opt.module, packageData, strings.Split(version, " ")[0])
 	if err != nil {
 		return nil, err
 	}
 	p.Tagger = structtag.NewTagger("tfsdk")
 	var files []*protogen.GeneratedFile
 	generatedFiles := make([]*protogen.GeneratedFile, 0)
-	if files, err = p.genBlocks(in, importPath); err != nil {
+	if files, err = p.genBlocks(in, packageData); err != nil {
 		return nil, err
 	}
 	generatedFiles = append(generatedFiles, files...)
-	if files, err = p.genDependencies(in, provider.PbImportPath()); err != nil {
+	if files, err = p.genDependencies(in, packageData); err != nil {
 		return nil, err
 	}
 	generatedFiles = append(generatedFiles, files...)
@@ -143,48 +136,62 @@ func (p *plugin) Run(in Input) ([]*protogen.GeneratedFile, error) {
 			break
 		}
 	}
-	if files, err = p.genProvider(importPath, provider, hasServiceClient); err != nil {
+	if files, err = p.genProvider(packageData, provider, hasServiceClient); err != nil {
 		return nil, err
 	}
 	return append(generatedFiles, files...), nil
 }
 
-func (p *plugin) genProvider(importPath protogen.GoImportPath, provider extension.Provider, hasServiceClient bool) ([]*protogen.GeneratedFile, error) {
-	filename := filepath.Join(string(importPath), provider.Filename())
-	file := p.NewGeneratedFile(filename, importPath)
+func (p *plugin) genProvider(packageData extension.PackageData, provider extension.Provider, hasServiceClient bool) ([]*protogen.GeneratedFile, error) {
+	filename := filepath.Join(string(packageData.ProviderImportPath), provider.Filename())
+	file := p.NewGeneratedFile(filename, packageData.ProviderImportPath)
 	if err := p.WriteProvider(filename, file, provider, hasServiceClient); err != nil {
 		return nil, err
 	}
 	return []*protogen.GeneratedFile{file}, nil // just one file but... keep the same pattern
 }
 
-func (p *plugin) genBlocks(in Input, importPath protogen.GoImportPath) ([]*protogen.GeneratedFile, error) {
+func (p *plugin) genBlocks(in Input, packageData extension.PackageData) ([]*protogen.GeneratedFile, error) {
 	generatedFiles := make([]*protogen.GeneratedFile, 0)
-	for _, resource := range in.Resources() {
-		filename := filepath.Join(string(importPath), resource.Filename())
-		file := p.NewGeneratedFile(filename, importPath)
-		if err := p.WriteResource(filename, file, resource); err != nil {
+	for _, block := range in.AllBlocks() {
+		filename := filepath.Join(string(packageData.ProviderImportPath), block.Filename())
+		file := p.NewGeneratedFile(filename, packageData.ProviderImportPath)
+		var writeBlock gocode.Write
+		var writeExec gocode.Write
+		if block.IsResource() {
+			writeBlock = p.WriteResource
+			writeExec = p.WriteResourceExec
+		} else {
+			writeBlock = p.WriteDatasource
+			writeExec = p.WriteDatasourceExec
+		}
+		if err := writeBlock(filename, file, block); err != nil {
 			return nil, err
 		}
 		generatedFiles = append(generatedFiles, file)
-	}
-	for _, datasource := range in.Datasources() {
-		filename := filepath.Join(string(importPath), datasource.Filename())
-		file := p.NewGeneratedFile(filename, importPath)
-		if err := p.WriteDatasource(filename, file, datasource); err != nil {
-			return nil, err
+		if packageData.ExecImportPath != "" {
+			filename = filepath.Join(string(packageData.ExecImportPath), block.ExecFilename())
+			existingFile := strings.TrimPrefix(filename, opt.module+"/")
+			if _, err := os.Stat(existingFile); err == nil {
+				log.Debug().Msgf("skipping %s, Exec file already exists", existingFile)
+				continue
+			}
+			file = p.NewGeneratedFile(filename, packageData.ExecImportPath)
+			if err := writeExec(filename, file, block); err != nil {
+				return nil, err
+			}
+			generatedFiles = append(generatedFiles, file)
 		}
-		generatedFiles = append(generatedFiles, file)
 	}
 	return generatedFiles, nil
 }
 
-func (p *plugin) genDependencies(in Input, importPath protogen.GoImportPath) ([]*protogen.GeneratedFile, error) {
+func (p *plugin) genDependencies(in Input, packageData extension.PackageData) ([]*protogen.GeneratedFile, error) {
 	generatedFiles := make([]*protogen.GeneratedFile, 0)
 	for fullName, models := range in.Dependencies() {
 		var generatedFilename string
 		for _, f := range p.Files {
-			if f.Desc.FullName() == fullName {
+			if *f.Proto.Name == fullName {
 				generatedFilename = f.GeneratedFilenamePrefix + "_tf.pb.go"
 				break
 			}
@@ -192,7 +199,7 @@ func (p *plugin) genDependencies(in Input, importPath protogen.GoImportPath) ([]
 		if generatedFilename == "" {
 			return nil, fmt.Errorf("could not find proto file for %s, this shouldn't have happened", fullName)
 		}
-		file := p.NewGeneratedFile(generatedFilename, importPath)
+		file := p.NewGeneratedFile(generatedFilename, packageData.ProviderImportPath)
 		if err := p.WriteDependency(generatedFilename, file, models...); err != nil {
 			return nil, err
 		}

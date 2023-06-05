@@ -8,6 +8,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -30,11 +31,12 @@ type Tagger interface {
 }
 
 type tagger struct {
-	tag string
+	tag     string
+	replace *regexp.Regexp
 }
 
 func NewTagger(tag string) Tagger {
-	return &tagger{tag: tag}
+	return &tagger{tag: tag, replace: regexp.MustCompile(fmt.Sprintf(`%s:"[^"]+"`, tag))}
 }
 
 func (t *tagger) Tag(filePath string, models []extension.Model) error {
@@ -131,7 +133,11 @@ func (t *tagger) addTag(models []extension.Model) (*bool, astutil.ApplyFunc) {
 					field.Tag = &ast.BasicLit{}
 					field.Tag.Value = "`"
 				} else {
-					field.Tag.Value = strings.TrimSuffix(field.Tag.Value, "`") + " "
+					field.Tag.Value = strings.TrimSuffix(field.Tag.Value, "`")
+					if strings.Contains(field.Tag.Value, fmt.Sprintf("%s:", t.tag)) {
+						field.Tag.Value = strings.TrimSpace(t.replace.ReplaceAllString(field.Tag.Value, ""))
+					}
+					field.Tag.Value += " "
 				}
 				field.Tag.Value += fmt.Sprintf("%s:\"%s\"`", t.tag, tfsdkField)
 				*changed = true

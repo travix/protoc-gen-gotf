@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	dataSourceTemplate = "data_source.tmpl"
-	dependencyTemplate = "proto_tf.tmpl"
-	resourceTemplate   = "resource.tmpl"
-	providerTemplate   = "provider.tmpl"
+	dataSourceExecTemplate = "data_source_exec.tmpl"
+	dataSourceTemplate     = "data_source.tmpl"
+	dependencyTemplate     = "proto_tf.tmpl"
+	providerTemplate       = "provider.tmpl"
+	resourceExecTemplate   = "resource_exec.tmpl"
+	resourceTemplate       = "resource.tmpl"
 )
 
 // ensure writer implements Writer.
@@ -28,22 +30,26 @@ var _ Writer = &writer{}
 //go:embed tmpls
 var templates embed.FS
 
+type Write func(string, *protogen.GeneratedFile, extension.Block) error
+
 type Writer interface {
 	WriteDatasource(string, *protogen.GeneratedFile, extension.Block) error
+	WriteDatasourceExec(string, *protogen.GeneratedFile, extension.Block) error
 	WriteDependency(string, *protogen.GeneratedFile, ...extension.Model) error
 	WriteProvider(string, *protogen.GeneratedFile, extension.Provider, bool) error
 	WriteResource(string, *protogen.GeneratedFile, extension.Block) error
+	WriteResourceExec(string, *protogen.GeneratedFile, extension.Block) error
 }
 
 type writer struct {
-	pbImportPath, providerImportPath   protogen.GoImportPath
-	pbPackageName, providerPackageName protogen.GoPackageName
-	templates                          *template.Template
-	version                            string
+	extension.PackageData
+	module    string
+	templates *template.Template
+	version   string
 }
 
-func NewWriter(pbImportPath, providerImportPath protogen.GoImportPath, pbPackageName, providerPackageName protogen.GoPackageName, version string) (Writer, error) {
-	w := &writer{pbImportPath: pbImportPath, providerImportPath: providerImportPath, pbPackageName: pbPackageName, providerPackageName: providerPackageName, version: version}
+func NewWriter(module string, pkgData extension.PackageData, version string) (Writer, error) {
+	w := &writer{PackageData: pkgData, module: module, version: version}
 	err := w.addTemplates()
 	if err != nil {
 		return nil, err

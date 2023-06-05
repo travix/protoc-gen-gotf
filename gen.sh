@@ -20,9 +20,10 @@ require mockery github.com/vektra/mockery/v2@v2.26.1
 require protoc
 
 echo "generating gotf.proto"
-protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-gotf \
-  --go_opt=Mgotf.proto="github.com/travix/protoc-gen-gotf/pb;pb" \
-  gotf.proto
+#protoc -I. --go_out=. --go_opt module=github.com/travix/protoc-gen-gotf \
+#  --go_opt=Mgotf.proto="github.com/travix/protoc-gen-gotf/pb;pb" \
+#  gotf.proto
+buf generate --path gotf.proto
 
 echo "generating mocks"
 # TODO: remove this after https://github.com/vektra/mockery/discussions/549 is close

@@ -36,7 +36,7 @@ func (w *writer) Format(src []byte, path string) ([]byte, error) {
 			section.Standard{},
 			section.Default{},
 			section.Dot{},
-			section.Custom{Prefix: string(w.pbImportPath)},
+			section.Custom{Prefix: w.module},
 		},
 		SectionSeparators: section.DefaultSectionSeparators(),
 	}

@@ -5,7 +5,7 @@ var _ datasource.DataSource = &{{ .Block.GoName }}{}
 
 type {{ .Block.ExecGoName }} interface {
 	dtsrc.Datasource[*{{ .Block.ModelGoName }}]
-{{- range $inde, $client := .Block.Clients }}
+{{- range $index, $client := .Block.Clients }}
 	Set{{ $client }}({{ $.PbPackageName }}.{{ $client }})
 {{- end }}
 }

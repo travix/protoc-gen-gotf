@@ -12,16 +12,15 @@ jobs:
     steps:
       - name: Setup job
         uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
+        with:
+          buf_api_token: ${{ secrets.buf_api_token }}
+          buf_user: ${{ vars.buf_user }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Release CLI
         uses: goreleaser/goreleaser-action@v4
         with:
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: bufbuild/buf-setup-action@v1.19.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          buf_user: ${{ vars.buf_user }}
-          buf_api_token: ${{ secrets.buf_api_token }}
       - name: Release Protobuf
         run: buf push

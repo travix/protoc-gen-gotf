@@ -12,10 +12,13 @@ import (
 type Block interface {
 	Clients() []string
 	Description() string
+	ExecFilename() string
 	ExecGoName() string
 	Filename() string
 	GoName() string
 	HasServiceClient() bool
+	IsDataSource() bool
+	IsResource() bool
 	Model() Model
 	ModelGoName() string
 	Option() *pb.Block

@@ -5,7 +5,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/runtime/protoimpl"
 
 	"github.com/travix/protoc-gen-gotf/extension"
@@ -16,7 +15,7 @@ var _ Input = &input{}
 
 type Input interface {
 	Datasources() []extension.Block
-	Dependencies() map[protoreflect.FullName][]extension.Model
+	Dependencies() map[string][]extension.Model
 	Provider() extension.Provider
 	Resources() []extension.Block
 	AllBlocks() []extension.Block
@@ -26,12 +25,12 @@ type input struct {
 	providerProtoFile string
 	provider          extension.Provider
 	blocks            []extension.Block
-	dependencies      map[protoreflect.FullName][]extension.Model
+	dependencies      map[string][]extension.Model
 }
 
 // NewInput returns gotf *input.
 func NewInput(synthesizer extension.Synthesizer, gen *protogen.Plugin) (Input, error) {
-	in := &input{dependencies: make(map[protoreflect.FullName][]extension.Model)}
+	in := &input{dependencies: make(map[string][]extension.Model)}
 	for _, file := range gen.Files {
 		if !file.Generate {
 			log.Debug().Msgf("skipped %s not in requested files", file.Proto.GetName())
@@ -55,7 +54,7 @@ func (in *input) Datasources() []extension.Block {
 	return resource
 }
 
-func (in *input) Dependencies() map[protoreflect.FullName][]extension.Model {
+func (in *input) Dependencies() map[string][]extension.Model {
 	return in.dependencies
 }
 
@@ -155,7 +154,7 @@ func (in *input) addDependencies(synthesizer extension.Synthesizer, model extens
 	// add message as dependency since it's not a native terraform type
 DEPENDENCIES:
 	for _, dependency := range newDependencies {
-		srcFileName := dependency.Message().Desc.ParentFile().FullName()
+		srcFileName := dependency.Message().Location.SourceFile
 		if _, ok := in.dependencies[srcFileName]; !ok {
 			in.dependencies[srcFileName] = make([]extension.Model, 0)
 		}

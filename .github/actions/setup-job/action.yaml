@@ -1,5 +1,15 @@
 name: Setup Workflow job
 description: Clone repository, setup Go, install Protoc, gocode code, download dependencies
+inputs:
+  buf_api_token:
+    description: Buf API token
+    required: false
+  buf_user:
+    description: Buf user
+    required: false
+  github_token:
+    description: GitHub token
+    required: false
 runs:
   using: composite
   steps:
@@ -10,14 +20,12 @@ runs:
       uses: actions/setup-go@v4
       with:
           go-version: ^1
-    - name: Install Protoc
-      shell: bash
-      run: |
-        version=23.1
-        curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${version}/protoc-${version}-linux-x86_64.zip
-        unzip protoc-${version}-linux-x86_64.zip -d $HOME/.local
-        rm protoc-${version}-linux-x86_64.zip
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+    - name: Setup buf
+      uses: bufbuild/buf-setup-action@v1
+      with:
+        buf_api_token: ${{ inputs.buf_api_token }}
+        buf_user: ${{ inputs.buf_user }}
+        github_token: ${{ inputs.github_token }}
     - name: Generate
       shell: bash
       run: go generate ./...
