@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Setup job
         uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Go fmt
         run: test -z $(gofmt -l .)
         shell: bash
@@ -41,6 +43,8 @@ jobs:
     steps:
       - name: Setup job
         uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Unit test without race
         run: go test ./...
 
@@ -51,5 +55,7 @@ jobs:
     steps:
       - name: Setup job
         uses: travix/protoc-gen-gotf/.github/actions/setup-job@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: go build
