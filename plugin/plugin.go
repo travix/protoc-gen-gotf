@@ -129,26 +129,43 @@ func (p *plugin) Run(in Input) ([]*protogen.GeneratedFile, error) {
 		return nil, err
 	}
 	generatedFiles = append(generatedFiles, files...)
-	hasServiceClient := false
 	for _, block := range in.AllBlocks() {
 		if block.HasServiceClient() {
-			hasServiceClient = true
-			break
+			provider.SetHasServiceClient(true)
+		}
+		if block.IsResource() {
+			provider.AddResource(block.GoName(), block.ExecGoName())
+		} else {
+			provider.AddDatasource(block.GoName(), block.ExecGoName())
 		}
 	}
-	if files, err = p.genProvider(packageData, provider, hasServiceClient); err != nil {
+	if files, err = p.genProvider(packageData, provider); err != nil {
 		return nil, err
 	}
 	return append(generatedFiles, files...), nil
 }
 
-func (p *plugin) genProvider(packageData extension.PackageData, provider extension.Provider, hasServiceClient bool) ([]*protogen.GeneratedFile, error) {
+func (p *plugin) genProvider(packageData extension.PackageData, provider extension.Provider) ([]*protogen.GeneratedFile, error) {
 	filename := filepath.Join(string(packageData.ProviderImportPath), provider.Filename())
 	file := p.NewGeneratedFile(filename, packageData.ProviderImportPath)
-	if err := p.WriteProvider(filename, file, provider, hasServiceClient); err != nil {
+	if err := p.WriteProvider(filename, file, provider); err != nil {
 		return nil, err
 	}
-	return []*protogen.GeneratedFile{file}, nil // just one file but... keep the same pattern
+	generatedFiles := []*protogen.GeneratedFile{file}
+	if packageData.ExecImportPath != "" {
+		filename = filepath.Join(string(packageData.ExecImportPath), provider.ExecFilename())
+		existingFile := strings.TrimPrefix(filename, opt.module+"/")
+		if _, err := os.Stat(existingFile); err == nil {
+			log.Debug().Msgf("skipping %s, Exec file already exists", existingFile)
+			return generatedFiles, nil
+		}
+		file = p.NewGeneratedFile(filename, packageData.ExecImportPath)
+		if err := p.WriteProviderExec(filename, file, provider); err != nil {
+			return nil, err
+		}
+		generatedFiles = append(generatedFiles, file)
+	}
+	return generatedFiles, nil
 }
 
 func (p *plugin) genBlocks(in Input, packageData extension.PackageData) ([]*protogen.GeneratedFile, error) {

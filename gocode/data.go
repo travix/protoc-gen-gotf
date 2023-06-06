@@ -50,15 +50,27 @@ func (w *writer) execData(block extension.Block, importsArg []_import) map[strin
 		entry{"Imports", w.importStrings(imports)})
 }
 
-func (w *writer) providerData(provider extension.Provider, hasServiceClient bool, importsArg []_import) map[string]any {
+func (w *writer) providerExecData(provider extension.Provider, importsArg []_import) map[string]any {
+	imports := make([]_import, len(importsArg))
+	copy(imports, importsArg)
+	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
+	imports = append(imports,
+		_import{path: string(w.PbImportPath), string: string(w.PbPackageName)},
+		_import{path: string(w.ProviderImportPath), string: string(w.ProviderPackageName)},
+	)
+	return w.data(
+		entry{"Provider", provider},
+		entry{"Imports", w.importStrings(imports)})
+}
+
+func (w *writer) providerData(provider extension.Provider, importsArg []_import) map[string]any {
 	imports := make([]_import, len(importsArg))
 	copy(imports, importsArg)
 	// nolint:makezero // https://github.com/ashanbrown/makezero/issues/12
 	imports = append(imports, _import{path: string(w.PbImportPath), string: string(w.PbPackageName)})
 	return w.data(
 		entry{"Provider", provider},
-		entry{"Imports", w.importStrings(imports)},
-		entry{"HasServiceClient", hasServiceClient})
+		entry{"Imports", w.importStrings(imports)})
 }
 
 func (w *writer) dependencyData(models []extension.Model, defaultImports []_import) map[string]any {

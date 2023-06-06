@@ -12,12 +12,8 @@ import (
 var _ {{ .ProviderPackageName }}.{{ .Block.ExecGoName }} = &{{ .Block.ExecGoName }}{}
 
 type {{ .Block.ExecGoName }} struct {
-{{ $numClients := len .Block.Clients }}{{- if gt $numClients 1 }}
 {{- range $index, $client := .Block.Clients }}
-	client{{ $index }} {{ $.PbPackageName }}.{{ $client }}
-{{- end }}
-{{- else }}
-	client {{ $.PbPackageName }}.{{ index .Block.Clients 0 }}
+	{{ ClientVarName $client }} {{ $.PbPackageName }}.{{ $client }}
 {{- end }}
 }
 
@@ -42,15 +38,8 @@ func (e *{{ .Block.ExecGoName }}) Delete(ctx context.Context, req resource.Delet
 	panic("implement me")
 }
 
-{{ if gt $numClients 1 }}{{- range $index, $client := .Block.Clients }}
-func (e *{{ .Block.ExecGoName }}) Set{{ $client }}(client {{ $.PbPackageName }}.{{ $client }}) {
-	e.client{{ $index }} = client
+{{ range $index, $client := .Block.Clients }}
+func (e *{{ $.Block.ExecGoName }}) Set{{ $client }}(client {{ $.PbPackageName }}.{{ $client }}) {
+	e.{{ ClientVarName $client }} = client
 }
-
-{{- end }}
-{{- else }}
-func (e *{{ .Block.ExecGoName }}) Set{{ index .Block.Clients 0 }}(client {{ $.PbPackageName }}.{{ index .Block.Clients 0 }}) {
-	e.client = client
-}
-
 {{- end }}

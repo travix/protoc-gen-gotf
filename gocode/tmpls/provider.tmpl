@@ -5,7 +5,7 @@ var _ provider.Provider = &{{ .Provider.GoName }}Provider{}
 
 type {{ .Provider.GoName }}Exec interface {
 	prvdr.Provider
-{{- if .HasServiceClient }}
+{{- if .Provider.HasServiceClient }}
 	prvdr.CanConfigureGrpc[*{{ .Provider.ModelGoName }}]
 {{- end }}
 }
@@ -48,7 +48,7 @@ func (p *{{ .Provider.GoName }}Provider) Schema(ctx context.Context, req provide
 func (p *{{ .Provider.GoName }}Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	if _exec, ok := p.exec.(prvdr.CanConfigure); ok {
 		_exec.Configure(ctx, req, resp)
-{{- if .HasServiceClient }}
+{{- if .Provider.HasServiceClient }}
 		if resp.DataSourceData != nil {
 			resp.Diagnostics.AddWarning("resp.DataSourceData not set", "DataSourceData should be set to grpc.ClientConnInterface by Configure method found nil")
 		}
@@ -58,7 +58,7 @@ func (p *{{ .Provider.GoName }}Provider) Configure(ctx context.Context, req prov
 {{- end }}
 		return
 	}
-{{- if .HasServiceClient }}
+{{- if .Provider.HasServiceClient }}
 	data, diagnostics := gotf.GetModel[{{ .Provider.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)

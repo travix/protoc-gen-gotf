@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
 
 	"github.com/travix/protoc-gen-gotf/extension"
 	"github.com/travix/protoc-gen-gotf/pb"
@@ -16,11 +17,13 @@ type synthesizer struct {
 }
 
 func (s synthesizer) MessagePackageName(msg *protogen.Message) protogen.GoPackageName {
-	return protogen.GoPackageName(getPkgName(msg.Desc.ParentFile().Options()))
+	fileOpt, _ := msg.Desc.ParentFile().Options().(*descriptorpb.FileOptions)
+	return protogen.GoPackageName(getPkgName(fileOpt.GetGoPackage()))
 }
 
 func (s synthesizer) MessageImportPath(msg *protogen.Message) protogen.GoImportPath {
-	return protogen.GoImportPath(getImportPath(msg.Desc.ParentFile().Options()))
+	fileOpt, _ := msg.Desc.ParentFile().Options().(*descriptorpb.FileOptions)
+	return protogen.GoImportPath(getImportPath(fileOpt.GetGoPackage()))
 }
 
 func (s synthesizer) Module() string {

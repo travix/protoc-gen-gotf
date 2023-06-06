@@ -14,10 +14,13 @@ import (
 var _ extension.Provider = &provider{}
 
 type provider struct {
-	model       extension.Model
-	module      string
-	option      *pb.Provider
-	packageData extension.PackageData
+	datasources      map[string]string
+	hasServiceClient bool
+	model            extension.Model
+	module           string
+	option           *pb.Provider
+	packageData      extension.PackageData
+	resources        map[string]string
 }
 
 func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.Provider, error) {
@@ -25,7 +28,7 @@ func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.
 	if option == nil {
 		return nil, nil
 	}
-	p := &provider{option: option}
+	p := &provider{option: option, datasources: map[string]string{}, resources: map[string]string{}}
 	if p.option.Name == "" {
 		p.option.Name = msg.GoIdent.GoName
 	}
@@ -39,14 +42,14 @@ func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.
 	if p.option.ProviderPackage == "" {
 		p.option.ProviderPackage = filepath.Join(p.module, "providerpb")
 	}
-	p.packageData.ProviderPackageName = protogen.GoPackageName(filepath.Base(p.option.ProviderPackage))
-	p.packageData.ProviderImportPath = protogen.GoImportPath(p.option.ProviderPackage)
+	p.packageData.ProviderPackageName = protogen.GoPackageName(getPkgName(p.option.ProviderPackage))
+	p.packageData.ProviderImportPath = protogen.GoImportPath(getImportPath(p.option.ProviderPackage))
 	if !strings.HasPrefix(string(p.packageData.ProviderImportPath), p.module) {
 		p.packageData.ProviderImportPath = protogen.GoImportPath(filepath.Join(p.module, string(p.packageData.ProviderImportPath)))
 	}
 	if p.option.ExecPackage != nil {
-		p.packageData.ExecImportPath = protogen.GoImportPath(*p.option.ExecPackage)
-		p.packageData.ExecPackageName = protogen.GoPackageName(filepath.Base(*p.option.ExecPackage))
+		p.packageData.ExecPackageName = protogen.GoPackageName(getPkgName(*p.option.ExecPackage))
+		p.packageData.ExecImportPath = protogen.GoImportPath(getImportPath(*p.option.ExecPackage))
 	}
 	var err error
 	p.model, err = synth.Model(msg, false)
@@ -56,12 +59,36 @@ func NewProvider(synth extension.Synthesizer, msg *protogen.Message) (extension.
 	return p, nil
 }
 
+func (p *provider) AddDatasource(name string, exec string) {
+	p.datasources[name] = exec
+}
+
+func (p *provider) AddResource(name string, exec string) {
+	p.resources[name] = exec
+}
+
+func (p *provider) Datasources() map[string]string {
+	return p.datasources
+}
+
 func (p *provider) Description() string {
 	return p.option.Description
 }
 
+func (p *provider) ExecFilename() string {
+	return "provider_exec.go"
+}
+
+func (p *provider) ExecGoName() string {
+	return fmt.Sprintf("%sExec", p.GoName())
+}
+
 func (p *provider) Filename() string {
 	return "provider.go"
+}
+
+func (p *provider) HasServiceClient() bool {
+	return p.hasServiceClient
 }
 
 func (p *provider) GoName() string {
@@ -88,8 +115,12 @@ func (p *provider) PackageData() extension.PackageData {
 	return p.packageData
 }
 
-func (p *provider) ExecGoName() string {
-	return fmt.Sprintf("%sExec", p.GoName())
+func (p *provider) Resources() map[string]string {
+	return p.resources
+}
+
+func (p *provider) SetHasServiceClient(has bool) {
+	p.hasServiceClient = has
 }
 
 func (p *provider) TerraformName() string {

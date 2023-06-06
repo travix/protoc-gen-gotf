@@ -20,8 +20,8 @@ var defaultProviderImports = []_import{
 	{path: "github.com/travix/gotf/prvdr"},
 }
 
-func (w *writer) WriteProvider(filename string, file *protogen.GeneratedFile, provider extension.Provider, hasServiceClient bool) error {
-	data := w.providerData(provider, hasServiceClient, defaultProviderImports)
+func (w *writer) WriteProvider(filename string, file *protogen.GeneratedFile, provider extension.Provider) error {
+	data := w.providerData(provider, defaultProviderImports)
 	code := &bytes.Buffer{}
 	if err := w.templates.ExecuteTemplate(code, providerTemplate, data); err != nil {
 		return fmt.Errorf("failed to execute %s template: %w", providerTemplate, err)

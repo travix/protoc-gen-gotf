@@ -19,6 +19,7 @@ const (
 	dataSourceExecTemplate = "data_source_exec.tmpl"
 	dataSourceTemplate     = "data_source.tmpl"
 	dependencyTemplate     = "proto_tf.tmpl"
+	providerExecTemplate   = "provider_exec.tmpl"
 	providerTemplate       = "provider.tmpl"
 	resourceExecTemplate   = "resource_exec.tmpl"
 	resourceTemplate       = "resource.tmpl"
@@ -36,7 +37,8 @@ type Writer interface {
 	WriteDatasource(string, *protogen.GeneratedFile, extension.Block) error
 	WriteDatasourceExec(string, *protogen.GeneratedFile, extension.Block) error
 	WriteDependency(string, *protogen.GeneratedFile, ...extension.Model) error
-	WriteProvider(string, *protogen.GeneratedFile, extension.Provider, bool) error
+	WriteProvider(string, *protogen.GeneratedFile, extension.Provider) error
+	WriteProviderExec(string, *protogen.GeneratedFile, extension.Provider) error
 	WriteResource(string, *protogen.GeneratedFile, extension.Block) error
 	WriteResourceExec(string, *protogen.GeneratedFile, extension.Block) error
 }
@@ -70,6 +72,7 @@ func (w *writer) formatAndWrite(filename string, file *protogen.GeneratedFile, s
 
 func (w *writer) addTemplates() error {
 	funcs := sprig.TxtFuncMap()
+	funcs["ClientVarName"] = clientVarName
 	w.templates = template.New("tf_templates").Funcs(funcs)
 	err := fs.WalkDir(templates, "tmpls", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -93,4 +96,9 @@ func (w *writer) addTemplates() error {
 		return err //nolint:wrapcheck
 	}
 	return nil
+}
+
+func clientVarName(name string) string {
+	name = strings.TrimSuffix(name, "ServiceClient")
+	return strings.ToLower(name[:1]) + name[1:] + "Client"
 }

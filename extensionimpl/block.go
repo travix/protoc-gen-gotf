@@ -43,12 +43,16 @@ func (b *block) Description() string {
 	return b.option.Description
 }
 
-func (b *block) Filename() string {
-	return toSnakeCase(b.GoName()) + ".pb.go"
+func (b *block) ExecGoName() string {
+	return fmt.Sprintf("%sExec", b.GoName())
 }
 
 func (b *block) ExecFilename() string {
 	return toSnakeCase(b.GoName()) + "_exec.go"
+}
+
+func (b *block) Filename() string {
+	return toSnakeCase(b.GoName()) + ".pb.go"
 }
 
 func (b *block) GoName() string {
@@ -80,10 +84,6 @@ func (b *block) ModelGoName() string {
 
 func (b *block) Option() *pb.Block {
 	return b.option
-}
-
-func (b *block) ExecGoName() string {
-	return fmt.Sprintf("%sExec", b.GoName())
 }
 
 func (b *block) TerraformName() string {

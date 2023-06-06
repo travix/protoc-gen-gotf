@@ -8,6 +8,7 @@ import (
 	"github.com/daixiang0/gci/pkg/gci"
 	"github.com/daixiang0/gci/pkg/log"
 	"github.com/daixiang0/gci/pkg/section"
+	zlog "github.com/rs/zerolog/log"
 )
 
 type srcFile struct {
@@ -25,6 +26,7 @@ func (f srcFile) Path() string {
 func (w *writer) Format(src []byte, path string) ([]byte, error) {
 	dst, err := format.Source(src)
 	if err != nil {
+		zlog.Trace().Msgf("source:\n%s", src)
 		return nil, fmt.Errorf("failed to gofmt file %s: %w", path, err)
 	}
 	log.InitLogger()

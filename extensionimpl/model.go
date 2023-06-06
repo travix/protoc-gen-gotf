@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/descriptorpb"
 
 	"github.com/travix/protoc-gen-gotf/extension"
 	"github.com/travix/protoc-gen-gotf/pb"
@@ -23,7 +24,8 @@ type model struct {
 
 func NewModel(synth synthesizer, msg *protogen.Message, explicit bool) (extension.Model, error) {
 	m := &model{message: msg}
-	m.pkgName = getPkgName(msg.Desc.ParentFile().Options())
+	fileOpt, _ := msg.Desc.ParentFile().Options().(*descriptorpb.FileOptions)
+	m.pkgName = getPkgName(fileOpt.GetGoPackage())
 	for _, field := range msg.Fields {
 		attr, err := synth.Attribute(field, explicit)
 		if err != nil {
