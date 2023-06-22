@@ -59,7 +59,8 @@ func (p *{{ .Provider.GoName }}Provider) Configure(ctx context.Context, req prov
 		return
 	}
 {{- if .Provider.HasServiceClient }}
-	data, diagnostics := gotf.GetModel[{{ .Provider.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
+	data := &{{ .Provider.ModelGoName }}{}
+	diagnostics := gotf.GetModel(ctx, req.Config.Raw, data, req.Config.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return

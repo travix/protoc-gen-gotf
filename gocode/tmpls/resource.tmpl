@@ -105,7 +105,8 @@ func (r *{{ .Block.GoName }}Resource) UpgradeState(ctx context.Context) map[int6
 }
 
 func (r *{{ .Block.GoName }}Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	data, diagnostics := gotf.GetModel[{{ .Block.ModelGoName }}](ctx, req.State.Raw, req.State.Get)
+	data := &{{ .Block.ModelGoName }}{}
+	diagnostics := gotf.GetModel(ctx, req.State.Raw, data, req.State.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return
@@ -120,7 +121,8 @@ func (r *{{ .Block.GoName }}Resource) Read(ctx context.Context, req resource.Rea
 }
 
 func (r *{{ .Block.GoName }}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	data, diagnostics := gotf.GetModel[{{ .Block.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
+	data := &{{ .Block.ModelGoName }}{}
+	diagnostics := gotf.GetModel(ctx, req.Config.Raw, data, req.Config.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return
@@ -135,7 +137,8 @@ func (r *{{ .Block.GoName }}Resource) Create(ctx context.Context, req resource.C
 }
 
 func (r *{{ .Block.GoName }}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	data, diagnostics := gotf.GetModel[{{ .Block.ModelGoName }}](ctx, req.Config.Raw, req.Config.Get)
+	data := &{{ .Block.ModelGoName }}{}
+	diagnostics := gotf.GetModel(ctx, req.Config.Raw, data, req.Config.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return
@@ -150,7 +153,8 @@ func (r *{{ .Block.GoName }}Resource) Update(ctx context.Context, req resource.U
 }
 
 func (r *{{ .Block.GoName }}Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	data, diagnostics := gotf.GetModel[{{ .Block.ModelGoName }}](ctx, req.State.Raw, req.State.Get)
+	data := &{{ .Block.ModelGoName }}{}
+	diagnostics := gotf.GetModel(ctx, req.State.Raw, data, req.State.Get)
 	if diagnostics.HasError() {
 		resp.Diagnostics.Append(diagnostics...)
 		return

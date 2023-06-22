@@ -67,7 +67,7 @@ func (a *attribute) DefaultValue() string {
 }
 
 func (a *attribute) NeedsDefaultValue() bool {
-	return !a.IsPointer() && a.Optional()
+	return !a.IsPointer() && !a.TypeValue().IsList() && !a.TypeValue().IsMap() && !a.TypeValue().IsNestedSingleObject()
 }
 
 func (a *attribute) Computed() bool {

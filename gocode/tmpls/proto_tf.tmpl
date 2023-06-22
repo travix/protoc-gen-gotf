@@ -103,7 +103,7 @@ func (x *{{ .Message.GoIdent.GoName }}) ResourceSchema() map[string]rschema.Attr
 }
 {{- end }}
 
-func (x {{ .Message.GoIdent.GoName }}) AttributeDefaultValues(ctx context.Context) map[string]tftypes.Value {
+func (x *{{ .Message.GoIdent.GoName }}) AttributeDefaultValues(ctx context.Context) map[string]tftypes.Value {
 	attributes := map[string]tftypes.Value{
 {{- range .Attributes }}
 	{{- if .NeedsDefaultValue }}
